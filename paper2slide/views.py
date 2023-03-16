@@ -1,8 +1,19 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render
+
+from .forms import PaperUploadForm
 
 # TODO: Jongwon
 def index(request):
-    return HttpResponse("P2S index.")
+    if request.method == 'POST':
+        form = PaperUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            print(request.FILES['file'].name)
+            return HttpResponseRedirect('/good/')
+    else:
+        form = PaperUploadForm()
+
+    return render(request, 'paper2slide/index.html', {'form': form})
 
 # TODO: Heejae
 def pdf_to_text(pdf_file):
