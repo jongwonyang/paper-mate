@@ -35,6 +35,9 @@ def pdf_to_text(pdf_file):
         ...
     ])
     """
+
+
+    
     pass
 
 # TODO: Inseo
