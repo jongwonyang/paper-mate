@@ -71,7 +71,7 @@ def generate_slide(paper_summary):
     slide_info[2~n-1]: 부제, 내용
     slide_info[n]: Q & A page
     """
-
+    name = paper_summary['user_name']
     for slide_info in paper_summary:                 #slide_info에는 각 slide페이지에 대한 정보가 담겨져 있음
         slide = prs.slides.add_slide(slide_info['layout'])
         """
@@ -87,4 +87,10 @@ def generate_slide(paper_summary):
         8: Picture with Caption
         """
         if slide_info['layout'] == 0:
-            pass
+            title = slide.shapes.title
+            subtitle = slide.placehoders[1]
+
+            title.text = slide_info['contents']['title']
+            subtitle.text = slide_info['contents']['title']
+
+    prs.save(name+'.pptx')
