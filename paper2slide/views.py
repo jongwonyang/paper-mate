@@ -3,6 +3,7 @@ import collections
 import collections.abc
 import json
 from pptx import Presentation
+from pptx.util import Inches, Pt
 
 # TODO: Jongwon
 
@@ -103,5 +104,20 @@ def generate_slide(paper_summary):
                 # print("picture name: ", placeholder_info["content"][0]["item"])
                 slide.placeholders[placeholder_info["number"]].insert_picture(
                     placeholder_info["content"][0]["item"])
+
+            else:
+                for content in placeholder_info["content"]:
+                    if (content["type"] == "text"):
+                        txBox = slide.shapes.add_textbox(Inches(content["left"]), Inches(
+                            content["top"]), Inches(content["width"]), Inches(content["height"]))
+                        tf = txBox.text_frame
+                        p = tf.add_paragraph()
+                        p.text = content["item"]
+                        p.font.size = Pt(content["font-size"])
+                        p.font.bold = content["font-bold"]
+
+                    if (content["type"] == "image"):
+                        slide.shapes.add_picture(content["item"], Inches(
+                            content["left"]), Inches(content["top"]), Inches(content["height"]))
 
     prs.save(name+'.pptx')
