@@ -3,7 +3,21 @@
 {% load static %}
 
 {% block content %}
-<link rel="stylesheet" href={% static 'common/css/output.css' %} />
+<div class="flex justify-center items-center mt-6">
+  <div class="flex items-center mx-4 text-center">
+    <div class="bg-teal-500 rounded-full h-12 w-12">1</div>
+    <div class="h-1 w-32 bg-gray-300"></div>
+    <div class="bg-gray-300 rounded-full h-6 w-6"></div>
+    <div class="h-1 w-32 bg-gray-300"></div>
+    <div class="bg-gray-300 rounded-full h-6 w-6"></div>
+    <div class="h-1 w-32 bg-gray-300"></div>
+    <div class="bg-gray-300 rounded-full h-6 w-6"></div>
+  </div>
+</div>
+
+<div class="container py-20 text-center">
+  <h1>논문 업로드</h1>
+</div>
 
 <h1 class="text-blue-600">Upload your paper</h1>
 <form

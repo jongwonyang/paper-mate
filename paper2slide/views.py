@@ -13,7 +13,7 @@ def index(request):
     else:
         form = PaperUploadForm()
 
-    return render(request, 'paper2slide/index.html', {'form': form})
+    return render(request, 'paper2slide/step-1.html', {'form': form})
 
 # TODO: Heejae
 def pdf_to_text(pdf_file):
