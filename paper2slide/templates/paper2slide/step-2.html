@@ -1,0 +1,85 @@
+{% extends 'main/base.html' %}
+
+{% load static %}
+
+{% block content %}
+<!-- Stepper -->
+<div class="container mx-auto my-10 flex justify-center space-x-10 items-center">
+  <div class="flex flex-col items-center">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-teal-500 text-white">
+      <span class="text-lg font-bold">1</span>
+    </div>
+    <span class="text-sm mt-2">논문 업로드</span>
+  </div>
+  <div class="relative flex-grow">
+    <hr class="absolute w-full border-teal-500 top-6">
+  </div>
+  <div class="flex flex-col items-center">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-teal-500 text-white">
+      <span class="text-lg font-bold">2</span>
+    </div>
+    <span class="text-sm mt-2">템플릿 선택</span>
+  </div>
+  <div class="relative flex-grow">
+    <hr class="absolute w-full border-teal-500 top-6">
+  </div>
+  <div class="flex flex-col items-center">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-gray-300">
+      <span class="text-lg font-bold">3</span>
+    </div>
+    <span class="text-sm mt-2">옵션 조정</span>
+  </div>
+  <div class="relative flex-grow">
+    <hr class="absolute w-full border-gray-300 top-6">
+  </div>
+  <div class="flex flex-col items-center">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-gray-300">
+      <span class="text-lg font-bold">4</span>
+    </div>
+    <span class="text-sm mt-2">다운로드</span>
+  </div>
+</div>
+
+<div class="container mx-auto flex flex-col bg-slate-50 rounded-lg shadow-md p-10 mb-10">
+  <h1 class="text-2xl font-bold">템플릿 선택</h1>
+  <p class="my-5">원하는 템플릿을 선택하세요.</p>
+  <form
+    action="{% url 'paper2slide:handle_template'%}"
+    method="post"
+  >
+  {% csrf_token %}
+    <div class="flex flex-row flex-wrap">
+      {% for template in template_list %}
+      <div class="basis-1/5 flex flex-col text-center my-5">
+        <img src="{{ template.thumbnail }}" class="object-cover w-48 rounded-lg mx-auto"/>
+        <div class="flex flex-row justify-center mt-3">
+          <input type="radio" id="{{ template.id }}" name="selected" value="{{ template.id }}" class="mr-2"/>
+          <label for="{{ template.id }}">{{ template.title }}</label>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <input
+      type="submit"
+      value="선택"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-5 rounded focus:outline-none focus:shadow-outline"
+    />
+  </form>
+  <hr/>
+  <h1 class="text-2xl font-bold mt-10">템플릿 업로드</h1>
+  <p class="my-5">직접 원하는 템플릿을 업로드하세요.</p>
+  <form
+    action="{% url 'paper2slide:upload_template' %}"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input
+      type="submit"
+      value="업로드"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-5 rounded focus:outline-none focus:shadow-outline"
+    />
+  </form>
+</div>
+{% endblock content %}

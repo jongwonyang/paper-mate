@@ -1,8 +1,46 @@
 from django.http import HttpResponse
 from pdfExtractor import extract_data
-# TODO: Jongwon
+
+import os
+
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect
+from django.core.files.storage import FileSystemStorage
+
+from .forms import FileUploadForm
+
 def index(request):
-    return HttpResponse("P2S index.")
+    if request.method == 'POST':
+        form = FileUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            file = request.FILES['file']
+            name, ext = os.path.splitext(file.name)
+            fs = FileSystemStorage()
+            pptx_file = fs.save(file.name, file)
+            pps_file = "pps"
+            return redirect('paper2slide:choose_template', file=pptx_file) 
+    else:
+        form = FileUploadForm()
+
+    return render(request, 'paper2slide/step-1.html', {'form': form})
+
+def choose_template(request, file):
+    template_list = [
+        {'id': i, 'title': f'title {i}', 'thumbnail': f'https://picsum.photos/300/200?random={i}'} for i in range(10) 
+    ]
+    form = FileUploadForm()
+    return render(request, 'paper2slide/step-2.html', {'template_list': template_list, 'form': form})
+
+def handle_template(request):
+    # Create slide here
+    return redirect('paper2slide:adjust_options')
+
+def upload_template(request):
+    return HttpResponse("Upload template!")
+
+def adjust_options(request):
+    filename = "sample.pps"
+    return render(request, 'paper2slide/step-3.html', {'filename': filename})
 
 # TODO: Heejae
 def pdf_to_text(pdf_file):

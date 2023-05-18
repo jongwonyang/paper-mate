@@ -1,0 +1,36 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Paper Mate</title>
+    <link rel="stylesheet" href={% static 'common/css/output.css'%} />
+  </head>
+  <body>
+    <!-- Navigation bar -->
+    <nav class="bg-gray-900 text-white py-4">
+      <div class="container mx-auto flex justify-between">
+        <a href="/" class="text-xl font-bold"
+          >PaperMate<sup class="text-teal-500">ai</sup></a
+        >
+        <ul class="flex">
+          <li class="mx-4">
+            <a href="{% url 'paper2slide:index' %}">Paper To Slide</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-4">
+      <div class="container mx-auto">
+        <p>&copy; PaperMate 2023</p>
+      </div>
+    </footer>
+  </body>
+</html>

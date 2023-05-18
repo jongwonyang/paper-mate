@@ -1,0 +1,40 @@
+{% extends "main/base.html" %}
+
+{% load static %}
+
+{% block content %}
+
+<!-- Hero section -->
+<section class="bg-gray-800 py-20">
+  <div class="container mx-auto flex items-center justify-between">
+    <div class="w-1/2">
+      <h1 class="text-5xl font-bold text-white">
+        Welcome to PaperMate<sup class="text-teal-500">ai</sup>
+      </h1>
+      <p class="text-xl text-gray-400 mt-4">
+        논문 발표 슬라이드를 쉽고 빠르게 만들어보세요!
+      </p>
+      <button
+        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full mt-8"
+        onclick="location.href='{% url 'paper2slide:index' %}'"
+      >
+        시작하기
+      </button>
+    </div>
+    <div class="w-1/2">
+      <!--<img src="https://via.placeholder.com/600x400" alt="Hero image" />-->
+      <img src="{% static 'main/image/hero-image.jpg' %}" width="600" class="rounded-lg drop-shadow-lg" alt="Hero image" />
+    </div>
+  </div>
+</section>
+
+<!-- Other content -->
+<div class="container mx-auto py-8">
+  <h2 class="text-2xl font-bold mb-4">Other Content</h2>
+  <p>
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi vel
+    libero vitae mi dictum faucibus sed at tellus.
+  </p>
+</div>
+
+{% endblock %}

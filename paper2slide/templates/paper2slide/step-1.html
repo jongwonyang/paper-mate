@@ -1,0 +1,62 @@
+{% extends 'main/base.html' %}
+
+{% load static %}
+
+{% block content %}
+<!-- Stepper -->
+<div class="container mx-auto my-10 flex justify-center space-x-10 items-center">
+  <div class="flex flex-col items-center">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-teal-500 text-white">
+      <span class="text-lg font-bold">1</span>
+    </div>
+    <span class="text-sm mt-2">논문 업로드</span>
+  </div>
+  <div class="relative flex-grow">
+    <hr class="absolute w-full border-teal-500 top-6">
+  </div>
+  <div class="flex flex-col items-center">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-gray-300">
+      <span class="text-lg font-bold">2</span>
+    </div>
+    <span class="text-sm mt-2">템플릿 선택</span>
+  </div>
+  <div class="relative flex-grow">
+    <hr class="absolute w-full border-gray-300 top-6">
+  </div>
+  <div class="flex flex-col items-center">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-gray-300">
+      <span class="text-lg font-bold">3</span>
+    </div>
+    <span class="text-sm mt-2">옵션 조정</span>
+  </div>
+  <div class="relative flex-grow">
+    <hr class="absolute w-full border-gray-300 top-6">
+  </div>
+  <div class="flex flex-col items-center">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-gray-300">
+      <span class="text-lg font-bold">4</span>
+    </div>
+    <span class="text-sm mt-2">다운로드</span>
+  </div>
+</div>
+
+
+<div class="container mx-auto flex flex-col bg-slate-50 rounded-lg shadow-md p-10 mb-10">
+  <h1 class="text-2xl font-bold">논문 업로드</h1>
+  <p class="my-5">PDF 파일을 업로드 하세요.</p>
+  <form
+    action="{% url 'paper2slide:index' %}"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input
+      type="submit"
+      value="업로드"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 my-5 rounded focus:outline-none focus:shadow-outline"
+    />
+  </form>
+</div>
+
+{% endblock %}
