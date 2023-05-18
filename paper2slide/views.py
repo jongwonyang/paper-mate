@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-
+from pdfExtractor import extract_data
 # TODO: Jongwon
 def index(request):
     return HttpResponse("P2S index.")
@@ -35,7 +35,21 @@ def pdf_to_text(pdf_file):
         ...
     ])
     """
-    pass
+    paragraphs = extract_data(pdf_file)
+
+    output = []
+
+    for content in paragraphs:
+        if content["content"].upper().strip() == "ABSTRACT":
+            output.append({"role":"sectionHeading",
+                        "content":content["content"]})
+        if content["role"] == None and output[-1]["role"]==None:
+            output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+        else:
+            output.append({"role":content["role"],
+                        "content":content["content"]})
+
+    return output
 
 # TODO: Inseo
 def generate_slide(paper_summary):
