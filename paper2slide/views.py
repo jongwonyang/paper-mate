@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from pdfExtractor import extract_data
+from .pdfExtractor import extract_data
 
 import os
 
