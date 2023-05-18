@@ -1,4 +1,6 @@
 from django.http import HttpResponse
+import collections
+import collections.abc
 import json
 import collections
 import collections.abc
@@ -7,10 +9,14 @@ import win32com.client
 import pandas as pd
 
 # TODO: Jongwon
+
+
 def index(request):
     return HttpResponse("P2S index.")
 
 # TODO: Heejae
+
+
 def pdf_to_text(pdf_file):
     """
     Divide given paper (pdf file) into sections,
@@ -44,6 +50,19 @@ def pdf_to_text(pdf_file):
     pass
 
 # TODO: Inseo
+
+
+slide_layout = {"Title": 0,
+                "Title and Content": 1,
+                "Section Header": 2,
+                "Two Content": 3,
+                "Comparison": 4,
+                "Title Only": 5,
+                "Blank": 6,
+                "Contnet with Caption": 7,
+                "Picture with Caption": 8}
+
+
 def generate_slide(paper_summary):
 
     def RowCol(csv_file_address):
