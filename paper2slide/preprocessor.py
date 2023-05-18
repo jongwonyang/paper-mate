@@ -10,6 +10,7 @@ def get_cleaned_text(text):
 def remove_et_al_period(text):
     # "et al."이 포함된 문장에서 온점을 찾아 제거합니다.
     text = re.sub(r'(?<=et al)\.(?=\s|$)', '', text)
+    text = re.sub(r'\([^()]*\)', '', text)
     return text
 
 def remove_hyphen_spaces(text):

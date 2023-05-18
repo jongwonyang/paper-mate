@@ -41,14 +41,18 @@ def pdf_to_text(pdf_file):
     output = []
 
     for content in paragraphs:
-        if content["content"].upper().strip() == "ABSTRACT":
-            output.append({"role":"sectionHeading",
-                        "content":content["content"]})
-        if content["role"] == None and output[-1]["role"]==None:
-            output[-1]["content"] = output[-1]["content"]+" "+content["content"]
-        else:
-            output.append({"role":content["role"],
-                        "content":content["content"]})
+        if content["role"] == "sectionHeading" or content["role"] == None:
+            if content["content"].lower().strip() == "acknowledgements":
+                break;
+            elif content["content"].upper().strip() == "ABSTRACT":
+                output.append({"role":"sectionHeading",
+                        "content": "ABSTRACT"})
+            elif len(output)>0 and content["role"] == None and output[-1]["role"]==None:
+                if len(content["content"]) > 20:
+                    output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+                else:
+                    output.append({"role":content["role"],
+                            "content":content["content"]})
 
     output = summarize_text(output)
 
