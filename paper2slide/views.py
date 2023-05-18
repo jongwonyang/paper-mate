@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 from pdfExtractor import extract_data
+from summarizer import summarize_text
 # TODO: Jongwon
 def index(request):
     return HttpResponse("P2S index.")
@@ -8,7 +9,7 @@ def index(request):
 def pdf_to_text(pdf_file):
     """
     Divide given paper (pdf file) into sections,
-    (e.g. Intorduction, Background, Evaluation ...)
+    (e.g. Inroduction, Background, Evaluation ...)
     and make it to text format.
 
     :param pdf_file: input paper pdf file
@@ -48,6 +49,9 @@ def pdf_to_text(pdf_file):
         else:
             output.append({"role":content["role"],
                         "content":content["content"]})
+
+    output = summarize_text(output)
+
 
     return output
 
