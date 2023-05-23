@@ -111,18 +111,308 @@ def generate_slide(paper_summary):
                 
                 elif (placeholder_type == 'contents placeholder'):
                     body = new_slide.Shapes.Item(index1+1).TextFrame.TextRange
+                    Textinsertion = 0
                     for index2, content in enumerate(placeholder_info["content"]):
                         if (content["type"] == "text"):
                             this_paragraph = body.Paragraphs(index2+1)
-                            this_paragraph.Text = content["item"] + "\n"
+                            if (placeholder_info["numberOfTextcontent"] == Textinsertion +1):
+                                this_paragraph.Text = content["item"]
+                                Textinsertion = Textinsertion +1
+                            else:
+                                this_paragraph.Text = content["item"] + "\n"
+                                Textinsertion = Textinsertion +1
                             #this_paragraph.IndentLevel = content["level"] +1
-                            this_paragraph.ParagraphFormat.Bullet.Visible = True
+                            this_paragraph.ParagraphFormat.Bullet.Visible = content["bullet"]
+
+
+                        elif (content["type"] == "table"):
+                            table_csv_file = placeholder_info["content"][index2]["item"]
+                            csv_df = pandas.read_csv(table_csv_file)
+                            
+                            header = pandas.DataFrame(csv_df.columns).transpose()
+                            numRow, numCol = csv_processor.RowCol(table_csv_file)
+                            numRow = numRow + 1
+                            
+                            table_shape = new_slide.Shapes.AddTable(NumRows = numRow, NumColumns = numCol,
+                                                                    Left = placeholder_info["content"][index2]["Left"],
+                                                                    Top = placeholder_info["content"][index2]["Top"],
+                                                                    Width = placeholder_info["content"][index2]["Width"],
+                                                                    Height = placeholder_info["content"][index2]["Height"])
+                            table = table_shape.Table
+                            this_shape = new_slide.Shapes.Item(index1+1)
+                            this_width = this_shape.Width
+                            this_height = this_shape.Height
+
+                            print(f"height: {this_height}")
+
+                            if this_height > placeholder_info["content"][index2]["Height"]:
+                                divider = 2
+                                while (this_height > placeholder_info["content"][index2]["Height"]):
+
+                                    table = table_shape.Table
+                                    this_shape = new_slide.Shapes.Item(index1+1)
+                                    this_width = this_shape.Width
+                                    this_height = this_shape.Height
+
+                                    print("===================")
+                                    print(f"divider: {divider}")
+                                    
+                                    print(f"this_shape: {this_shape}")
+                                    
+                                    if this_shape.HasTable:
+                                        this_shape.Delete()
+                                        print("this_shape is deleted")
+                                    
+
+                                    df_list = list()
+                                    whole_df = csv_df.copy()
+                                    pivot = len(whole_df.index)//divider
+                                    remainder = len(whole_df.index)%divider
+                                    header.columns = range(header.shape[1])
+                                    if divider >= 2:
+                                        for i in range(divider):
+                                                if(i == 0):
+                                                    tmp = whole_df.copy().truncate(after = pivot)
+                                                    tmp.columns = range(tmp.shape[1])
+                                                    df_list.append(pandas.concat([header, tmp], axis=0))
+                                                elif(i * pivot < (i+1)* pivot -1):
+                                                    tmp = whole_df.copy().truncate(before = i * pivot, after = (i+1)* pivot-1)
+                                                    tmp.columns = range(tmp.shape[1])
+                                                    df_list.append(pandas.concat([header, tmp]))
+                                        if remainder > 0 :
+                                            tmp = whole_df.copy().truncate(before = divider * pivot, after = len(whole_df.index))
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
+                                    else:
+                                        if remainder == 0:
+                                            tmp = whole_df.copy().truncate(after = pivot -1)
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
+                                            tmp = header,whole_df.copy().truncate(before = pivot)
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
+                                        else:
+                                            tmp = whole_df.copy().truncate(after = pivot)
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
+                                            tmp = header,whole_df.copy().truncate(before = pivot+1)
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
+
+
+                                    first_df = df_list[0]
+
+                                    print(f"first_df")
+                                    print(first_df)
+
+                                    table_shape = new_slide.Shapes.AddTable(NumRows = len(first_df.index), NumColumns = len(first_df.columns)
+                                                                            # ,
+                                                                            # Left = placeholder_info["content"][0]["Left"],
+                                                                            # Top = placeholder_info["content"][0]["Top"],
+                                                                            # Width = placeholder_info["content"][0]["Width"],
+                                                                            # Height = placeholder_info["content"][0]["Height"]
+                                                                            )
+                                    table = table_shape.Table
+                                    # print(f"firstRow: {first_df.iloc[0]}")
+                                    for k in range(len(first_df.index)):
+                                        for l in range(len(first_df.columns)):
+                                            # cell = table.Cell(k+1, l+1)
+                                            table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(first_df.iloc[k,l])
+
+                                    this_height = new_slide.Shapes.Item(index1+1).Height
+                                    print(f"height: {this_height}")
+                                    if this_height <= placeholder_info["content"][index2]["Height"]:
+                                        for j in range(1, divider):
+                                            new_slide.Copy()
+                                            presentation.Slides.Paste(presentation.Slides.Count + 1)
+                                            new_slide = presentation.Slides(presentation.Slides.Count)
+                                            for element in range(new_slide.Shapes.Count):
+                                                t_shape = new_slide.Shapes.Item(element+1)
+                                                if t_shape.HasTable:
+                                                    t_shape.Delete()
+                                                    this_df = df_list[j]
+                                                    table_shape = new_slide.Shapes.AddTable(NumRows = len(this_df.index), NumColumns = len(this_df.columns)
+                                                                                            # ,
+                                                                                            # Left = placeholder_info["content"][0]["Left"],
+                                                                                            # Top = placeholder_info["content"][0]["Top"],
+                                                                                            # Width = placeholder_info["content"][0]["Width"],
+                                                                                            # Height = placeholder_info["content"][0]["Height"]
+                                                                                            )
+                                                    table = table_shape.Table
+                                                    for m in range(len(this_df.index)):
+                                                        for n in range(len(this_df.columns)):
+                                                            cell = table.Cell(m+1, n+1)
+                                                            cell.Shape.TextFrame.TextRange.Text = str(this_df.iloc[m,n])
+
+                                    else: divider = divider +1
+                            else:
+                                header.columns = range(header.shape[1])
+                                tmp = csv_df
+                                tmp.columns = range(tmp.shape[1])
+                                csv_df = pandas.concat([header, tmp])
+                                for k in range(len(first_df.index)):
+                                    for l in range(len(first_df.columns)):
+                                        # cell = table.Cell(k+1, l+1)
+                                        table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(csv_df.iloc[k,l])
+
+                        elif (content["type"] == "image"):
+                            new_slide.Shapes.AddPicture(FileName = placeholder_info["content"][index2]["item"],
+                                                                    LinkToFile = False,
+                                                                    SaveWithDocument = True,
+                                                                    Left = placeholder_info["content"][index2]["Left"],
+                                                                    Top = placeholder_info["content"][index2]["Top"],
+                                                                    Width = placeholder_info["content"][index2]["Width"],
+                                                                    Height = placeholder_info["content"][index2]["Height"])
+                                
+                
+                elif (placeholder_type == "text placeholder"):
+                    body = new_slide.Shapes.Item(index1+1).TextFrame.TextRange
+                    for index2, content in enumerate(placeholder_info["content"]):
+                        this_paragraph = body.Paragraphs(index2+1)
+                        if (placeholder_info["numberOfTextcontent"] == index2+1):
+                                this_paragraph.Text = content["item"]
+                        else:
+                                this_paragraph.Text = content["item"] + "\n"
+
+                elif (placeholder_type == "picture placeholder"):
+                    new_slide.Shapes.AddPicture(FileName = placeholder_info["content"][0]["item"],
+                                                    LinkToFile = False,
+                                                    SaveWithDocument = True,
+                                                    Left = placeholder_info["content"][0]["Left"],
+                                                    Top = placeholder_info["content"][0]["Top"],
+                                                    Width = placeholder_info["content"][0]["Width"],
+                                                    Height = placeholder_info["content"][0]["Height"])
+
+                elif (placeholder_type == "table placeholder"):
+                    table_csv_file = placeholder_info["content"][0]["item"]
+                    csv_df = pandas.read_csv(table_csv_file)
+                    
+                    header = pandas.DataFrame(csv_df.columns).transpose()
+
+                    numRow, numCol = csv_processor.RowCol(table_csv_file)
+                    numRow = numRow + 1
+                    table_shape = new_slide.Shapes.AddTable(NumRows = numRow, NumColumns = numCol,
+                                                            Left = placeholder_info["content"][0]["Left"],
+                                                            Top = placeholder_info["content"][0]["Top"],
+                                                            Width = placeholder_info["content"][0]["Width"],
+                                                            Height = placeholder_info["content"][0]["Height"])
+                    table = table_shape.Table
+                    this_shape = new_slide.Shapes.Item(index1+1)
+                    this_width = this_shape.Width
+                    this_height = this_shape.Height
+
+
+                    if this_height > placeholder_info["content"][0]["Height"]:
+                        divider = 2
+
+                        print(f"this_shape: {this_shape}")
+
+                        this_shape.Delete
+
+                        print("this_shape is deleted")
+
+                        while (this_height > placeholder_info["content"][0]["Height"]):
+                            df_list = list()
+                            whole_df = csv_df.copy()
+                            pivot = len(whole_df.index)//divider
+                            remainder = len(whole_df.index)%divider
+                            header.columns = range(header.shape[1])
+                            if divider > 2:
+                                for i in range(divider):
+                                    if(i * pivot < (i+1)* pivot -1): 
+                                        tmp = whole_df.copy().truncate(before = i * pivot, after = (i+1)* pivot-1)
+                                        tmp.columns = range(tmp.shape[1])
+                                        df_list.append(pandas.concat([header, ]))
+                                if remainder > 0 :
+                                    tmp = whole_df.copy().truncate(before = divider * pivot, after = len(whole_df.index))
+                                    tmp.columns = range(tmp.shape[1])
+                                    df_list.append(pandas.concat([header, tmp]))
+                            else:
+                                if remainder == 0:
+                                    tmp = whole_df.copy().truncate(after = pivot -1)
+                                    tmp.columns = range(tmp.shape[1])
+                                    df_list.append(pandas.concat([header, tmp]))
+                                    tmp = whole_df.copy().truncate(before = pivot)
+                                    tmp.columns = range(tmp.shape[1])
+                                    df_list.append(pandas.concat([header, tmp]))
+                                else:
+                                    tmp = whole_df.copy().truncate(after = pivot)
+                                    tmp.columns = range(tmp.shape[1])
+                                    df_list.append(pandas.concat([header,tmp]))
+                                    tmp = whole_df.copy().truncate(before = pivot+1)
+                                    tmp.columns = range(tmp.shape[1])
+                                    df_list.append(pandas.concat([header,tmp]))
+
+                            first_df = df_list[0]
+                            table_shape = new_slide.Shapes.AddTable(NumRows = len(first_df.index), NumColumns = len(first_df.columns),
+                                                                    Left = placeholder_info["content"][0]["Left"],
+                                                                    Top = placeholder_info["content"][0]["Top"],
+                                                                    Width = placeholder_info["content"][0]["Width"],
+                                                                    Height = placeholder_info["content"][0]["Height"])
+                            for k in range(len(first_df.index)):
+                                for l in range(len(first_df.columns)):
+                                    cell = table.Cell(k+1, l+1)
+                                    cell.Shape.TextFrame.TextRange.Text = first_df.iloc[k,l]
+
+                            this_height = new_slide.Shapes.Item(index1+1).Height
+                            if this_height <= placeholder_info["content"][0]["Height"]:
+                                for j in range(1, divider):
+                                    new_slide.Copy()
+                                    presentation.Slides.Paste(presentation.Slides.Count + 1)
+                                    new_slide = presentation.Slides(presentation.Slides.Count)
+                                    for element in range(new_slide.Shapes.Count):
+                                        t_shape = new_slide.Shapes.Item(element+1)
+                                        if t_shape.HasTable:
+                                            t_shape.Delete
+                                            this_df = df_list[j]
+                                            table_shape = new_slide.Shapes.AddTable(NumRows = len(this_df.index), NumColumns = len(this_df.columns),
+                                                                    Left = placeholder_info["content"][0]["Left"],
+                                                                    Top = placeholder_info["content"][0]["Top"],
+                                                                    Width = placeholder_info["content"][0]["Width"],
+                                                                    Height = placeholder_info["content"][0]["Height"])
+                                            for k in range(len(this_df.index)):
+                                                for l in range(len(this_df.columns)):
+                                                    cell = table.Cell(k+1, l+1)
+                                                    cell.Shape.TextFrame.TextRange.Text = this_df.iloc[k,l]
+
+                            else: divider = divider +1
+
+                    else:
+                        header.columns = range(header.shape[1])
+                        csv_df.columns = range(csv_df.shape[1])
+                        csv_df = pandas.concat([header, csv_df])
+                        for k in range(len(first_df.index)):
+                            for l in range(len(first_df.columns)):
+                                # cell = table.Cell(k+1, l+1)
+                                table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(csv_df.iloc[k,l])
+
+                else: #None
+                    Textinsertion = 0
+                    for index2, content in enumerate(placeholder_info["content"]):
+                        shape = new_slide.Shapes.AddShape( 1 ,Left = placeholder_info["content"][0]["Left"],
+                                                    Top = placeholder_info["content"][0]["Top"],
+                                                    Width = placeholder_info["content"][0]["Width"],
+                                                    Height = placeholder_info["content"][0]["Height"])
+                        shape.Fill.Transparency = 1.0
+                        shape.Line.Transparency = 1.0
+                        if (content["type"] == "text"):
+                            body = new_slide.Shapes.Item(index1+1+index2).TextFrame.TextRange
+                            this_paragraph = body.Paragraphs(index2+1)
+                            
+                            this_paragraph.Text = content["item"]
+                                
+                            
+                            #this_paragraph.IndentLevel = content["level"] +1
+                            this_paragraph.ParagraphFormat.Bullet.Visible = content["bullet"]
 
                         elif (content["type"] == "table"):
                             table_csv_file = placeholder_info["content"][0]["item"]
                             csv_df = pandas.read_csv(table_csv_file)
 
+                            header = pandas.DataFrame(csv_df.columns).transpose()
+
                             numRow, numCol = csv_processor.RowCol(table_csv_file)
+                            numRow = numRow + 1
                             table_shape = new_slide.Shapes.AddTable(NumRows = numRow, NumColumns = numCol,
                                                                     Left = placeholder_info["content"][0]["Left"],
                                                                     Top = placeholder_info["content"][0]["Top"],
@@ -153,25 +443,37 @@ def generate_slide(paper_summary):
                                         this_shape.Delete()
                                         print("this_shape is deleted")
                                     
-
                                     df_list = list()
                                     whole_df = csv_df.copy()
                                     pivot = len(whole_df.index)//divider
                                     remainder = len(whole_df.index)%divider
                                     
+                                    header.columns = range(header.shape[1])
                                     if divider > 2:
                                         for i in range(divider):
                                                 if(i * pivot < (i+1)* pivot -1):
-                                                    df_list.append(whole_df.copy().truncate(before = i * pivot, after = (i+1)* pivot-1))
+                                                    tmp = whole_df.copy().truncate(before = i * pivot, after = (i+1)* pivot-1)
+                                                    tmp.columns = range(tmp.shape[1])
+                                                    df_list.append(pandas.concat([header, tmp]))
                                         if remainder > 0 :
-                                            df_list.append(whole_df.copy().truncate(before = divider * pivot, after = len(whole_df.index)))
+                                            tmp = whole_df.copy().truncate(before = divider * pivot, after = len(whole_df.index))
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
                                     else:
                                         if remainder == 0:
-                                            df_list.append(whole_df.copy().truncate(after = pivot -1))
-                                            df_list.append(whole_df.copy().truncate(before = pivot))
+                                            tmp = whole_df.copy().truncate(after = pivot -1)
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
+                                            tmp = whole_df.copy().truncate(before = pivot)
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
                                         else:
-                                            df_list.append(whole_df.copy().truncate(after = pivot))
-                                            df_list.append(whole_df.copy().truncate(before = pivot+1))
+                                            tmp = whole_df.copy().truncate(after = pivot)
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
+                                            tmp = whole_df.copy().truncate(before = pivot+1)
+                                            tmp.columns = range(tmp.shape[1])
+                                            df_list.append(pandas.concat([header, tmp]))
 
 
                                     first_df = df_list[0]
@@ -196,7 +498,7 @@ def generate_slide(paper_summary):
                                     this_height = new_slide.Shapes.Item(index1+1).Height
                                     print(f"height: {this_height}")
                                     if this_height <= placeholder_info["content"][0]["Height"]:
-                                        for j in range(1, divider+1):
+                                        for j in range(1, divider):
                                             new_slide.Copy()
                                             presentation.Slides.Paste(presentation.Slides.Count + 1)
                                             new_slide = presentation.Slides(presentation.Slides.Count)
@@ -219,100 +521,24 @@ def generate_slide(paper_summary):
                                                             cell.Shape.TextFrame.TextRange.Text = str(this_df.iloc[m,n])
 
                                     else: divider = divider +1
-                
-                elif (placeholder_type == "text placeholder"):
-                    body = new_slide.Shapes.Item(index1+1).TextFrame.TextRange
-                    for index2, content in enumerate(placeholder_info["content"]):
-                        this_paragraph = body.Paragraphs(index2+1)
-                        this_paragraph.Text = content["item"] + "\n"
-
-                elif (placeholder_type == "picture placeholder"):
-                    new_slide.Shapes.AddPicture(FileName = placeholder_info["content"][0]["item"],
-                                                    LinkToFile = False,
-                                                    SaveWithDocument = True,
-                                                    Left = placeholder_info["content"][0]["Left"],
-                                                    Top = placeholder_info["content"][0]["Top"],
-                                                    Width = placeholder_info["content"][0]["Width"],
-                                                    Height = placeholder_info["content"][0]["Height"])
-
-                elif (placeholder_type == "table placeholder"):
-                    table_csv_file = placeholder_info["content"][0]["item"]
-                    csv_df = pandas.read_csv(table_csv_file)
-
-                    numRow, numCol = csv_processor.RowCol(table_csv_file)
-                    table_shape = new_slide.Shapes.AddTable(NumRows = numRow, NumColumns = numCol,
-                                                            Left = placeholder_info["content"][0]["Left"],
-                                                            Top = placeholder_info["content"][0]["Top"],
-                                                            Width = placeholder_info["content"][0]["Width"],
-                                                            Height = placeholder_info["content"][0]["Height"])
-                    table = table_shape.Table
-                    this_shape = new_slide.Shapes.Item(index1+1)
-                    this_width = this_shape.Width
-                    this_height = this_shape.Height
-
-                    if this_height > placeholder_info["content"][0]["Height"]:
-                        divider = 2
-
-                        print(f"this_shape: {this_shape}")
-
-                        this_shape.Delete
-
-                        print("this_shape is deleted")
-
-                        while (this_height > placeholder_info["content"][0]["Height"]):
-                            df_list = list()
-                            whole_df = csv_df.copy()
-                            pivot = len(whole_df.index)//divider
-                            remainder = len(whole_df.index)%divider
-
-                            if divider > 2:
-                                for i in range(divider):
-                                    if(i * pivot < (i+1)* pivot -1):    
-                                        df_list.append(whole_df.copy().truncate(before = i * pivot, after = (i+1)* pivot-1))
-                                if remainder > 0 :
-                                    df_list.append(whole_df.copy().truncate(before = divider * pivot, after = len(whole_df.index)))
                             else:
-                                if remainder == 0:
-                                    df_list.append(whole_df.copy().truncate(after = pivot -1))
-                                    df_list.append(whole_df.copy().truncate(before = pivot))
-                                else:
-                                    df_list.append(whole_df.copy().truncate(after = pivot))
-                                    df_list.append(whole_df.copy().truncate(before = pivot+1))
+                                header.columns = range(header.shape[1])
+                                csv_df.columns = range(csv_df.shape[1])
+                                csv_df = pandas.concat([header, csv_df])
+                                for k in range(len(first_df.index)):
+                                    for l in range(len(first_df.columns)):
+                                        # cell = table.Cell(k+1, l+1)
+                                        table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(csv_df.iloc[k,l])
 
-                            first_df = df_list[0]
-                            table_shape = new_slide.Shapes.AddTable(NumRows = len(first_df.index), NumColumns = len(first_df.columns),
-                                                                    Left = placeholder_info["content"][0]["Left"],
-                                                                    Top = placeholder_info["content"][0]["Top"],
-                                                                    Width = placeholder_info["content"][0]["Width"],
-                                                                    Height = placeholder_info["content"][0]["Height"])
-                            for k in range(len(first_df.index)):
-                                for l in range(len(first_df.columns)):
-                                    cell = table.Cell(k+1, l+1)
-                                    cell.Shape.TextFrame.TextRange.Text = first_df.iloc[k,l]
+                        elif (content["type"] == "image"):
+                            new_slide.Shapes.AddPicture(FileName = placeholder_info["content"][index2]["item"],
+                                                                    LinkToFile = False,
+                                                                    SaveWithDocument = True,
+                                                                    Left = placeholder_info["content"][index2]["Left"],
+                                                                    Top = placeholder_info["content"][index2]["Top"],
+                                                                    Width = placeholder_info["content"][index2]["Width"],
+                                                                    Height = placeholder_info["content"][index2]["Height"])
 
-                            this_height = new_slide.Shapes.Item(index1+1).Height
-                            if this_height <= placeholder_info["content"][0]["Height"]:
-                                for j in range(1, divider+1):
-                                    new_slide.Copy()
-                                    presentation.Slides.Paste(presentation.Slides.Count + 1)
-                                    new_slide = presentation.Slides(presentation.Slides.Count)
-                                    for element in range(new_slide.Shapes.Count):
-                                        t_shape = new_slide.Shapes.Item(element+1)
-                                        if t_shape.HasTable:
-                                            t_shape.Delete
-                                            this_df = df_list[j]
-                                            table_shape = new_slide.Shapes.AddTable(NumRows = len(this_df.index), NumColumns = len(this_df.columns),
-                                                                    Left = placeholder_info["content"][0]["Left"],
-                                                                    Top = placeholder_info["content"][0]["Top"],
-                                                                    Width = placeholder_info["content"][0]["Width"],
-                                                                    Height = placeholder_info["content"][0]["Height"])
-                                            for k in range(len(this_df.index)):
-                                                for l in range(len(this_df.columns)):
-                                                    cell = table.Cell(k+1, l+1)
-                                                    cell.Shape.TextFrame.TextRange.Text = this_df.iloc[k,l]
-
-                            else: divider = divider +1
-        
         # presentation.SaveAS(name + '.pptx')
         # presentation.Close()
 
