@@ -75,6 +75,7 @@ def pdf_to_text(pdf_file):
         ...
     ])
     """
+    
     paragraphs = extract_data(pdf_file)
 
     output = []
@@ -89,9 +90,9 @@ def pdf_to_text(pdf_file):
             elif len(output)>0 and content["role"] == None and output[-1]["role"]==None:
                 if len(content["content"]) > 20:
                     output[-1]["content"] = output[-1]["content"]+" "+content["content"]
-                else:
-                    output.append({"role":content["role"],
-                            "content":content["content"]})
+            else:
+                output.append({"role":content["role"],
+                        "content":content["content"]})
 
     output = summarize_text(output)
 
@@ -121,3 +122,4 @@ def generate_slide(paper_summary):
     :return: pptx slide file
     """
     pass
+
