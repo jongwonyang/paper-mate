@@ -1,6 +1,6 @@
 from transformers import *
 from summarizer import Summarizer
-from preprocessor import get_cleaned_text, replace_et_al
+from .preprocessor import get_cleaned_text, replace_et_al
 
 def summarize_text(output):
     # Load model, model config and tokenizer via Transformers

@@ -1,5 +1,5 @@
 from .pdfExtractor import extract_data
-from summarizer import summarize_text
+from .summarizer import summarize_text
 
 import os
 
@@ -8,6 +8,7 @@ from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 
 from .forms import FileUploadForm
+from django.conf import settings
 
 def index(request):
     if request.method == 'POST':
@@ -16,9 +17,10 @@ def index(request):
             file = request.FILES['file']
             name, ext = os.path.splitext(file.name)
             fs = FileSystemStorage()
-            pptx_file = fs.save(file.name, file)
-            pps_file = "pps"
-            return redirect('paper2slide:choose_template', file=pptx_file) 
+            pdf_file = fs.save(file.name, file)
+            result = pdf_to_text(settings.MEDIA_ROOT / pdf_file)
+            print(result)
+            return redirect('paper2slide:choose_template', file=pdf_file) 
     else:
         form = FileUploadForm()
 

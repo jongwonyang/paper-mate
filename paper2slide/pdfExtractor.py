@@ -3,7 +3,7 @@ from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import FormRecognizerClient, DocumentAnalysisClient
 import json
 
-credentials = json.load(open('credentials.json'))
+credentials = json.load(open('paper2slide/credentials.json'))
 API_KEY = credentials["API_KEY"]
 ENDPOINT = credentials["ENDPOINT"]
 
