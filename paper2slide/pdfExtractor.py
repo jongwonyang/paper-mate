@@ -16,3 +16,4 @@ def extract_data(path):
 
     form_result = poller.result().to_dict()
     return form_result["paragraphs"]
+    
