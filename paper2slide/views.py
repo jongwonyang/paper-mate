@@ -18,13 +18,15 @@ def index(request):
             name, ext = os.path.splitext(file.name)
             fs = FileSystemStorage()
             pdf_file = fs.save(file.name, file)
-            result = pdf_to_text(settings.MEDIA_ROOT / pdf_file)
-            print(result)
-            return redirect('paper2slide:choose_template', file=pdf_file) 
+            return redirect('paper2slide:process_pdf', file=pdf_file) 
     else:
         form = FileUploadForm()
 
     return render(request, 'paper2slide/step-1.html', {'form': form})
+
+def process_pdf(request, file):
+    pdf_file = open(settings.MEDIA_ROOT / file, 'r')
+    return render(request, 'paper2slide/process-pdf.html', {'file': file}) 
 
 def choose_template(request, file):
     template_list = [

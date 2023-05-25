@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'main.apps.MainConfig',
     'paper2slide.apps.Paper2SlideConfig',
     'django.contrib.admin',
@@ -70,6 +71,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'paper_mate.wsgi.application'
+ASGI_APPLICATION = 'paper_mate.asgi.application'
 
 
 # Database

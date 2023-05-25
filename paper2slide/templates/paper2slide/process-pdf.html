@@ -1,0 +1,24 @@
+{{ file|json_script:"filename" }}
+
+<script>
+const filename = JSON.parse(document.getElementById('filename').textContent);
+
+const ws = new WebSocket(
+    'ws://'
+    + window.location.host
+    + '/ws/process-pdf/'
+    + filename
+    + '/'
+);
+
+ws.onmessage = function(e) {
+    console.log(e.data);
+};
+
+window.onload = function() {
+    ws.send(JSON.stringify({
+        'filename': filename
+    }));
+}
+
+</script>
