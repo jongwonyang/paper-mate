@@ -1,7 +1,7 @@
 from .pdfExtractor import extract_data
 from .summarizer import summarize_text
 
-import os
+import os, json
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
@@ -15,25 +15,29 @@ def index(request):
         form = FileUploadForm(request.POST, request.FILES)
         if form.is_valid():
             file = request.FILES['file']
-            name, ext = os.path.splitext(file.name)
             fs = FileSystemStorage()
             pdf_file = fs.save(file.name, file)
-            result = pdf_to_text(settings.MEDIA_ROOT / pdf_file)
-            print(result)
-            return redirect('paper2slide:choose_template', file=pdf_file) 
+            return redirect('paper2slide:process_pdf', pdf_file_name=pdf_file) 
     else:
         form = FileUploadForm()
 
     return render(request, 'paper2slide/step-1.html', {'form': form})
 
-def choose_template(request, file):
+def process_pdf(request, pdf_file_name):
+    return render(request, 'paper2slide/process-pdf.html', {'file': pdf_file_name}) 
+
+def handle_template(request, summary_json_file):
+    if request.method == 'POST':
+        # create slide here
+        return redirect('paper2slide:adjust_options')
     template_list = [
         {'id': i, 'title': f'title {i}', 'thumbnail': f'https://picsum.photos/300/200?random={i}'} for i in range(10) 
     ]
     form = FileUploadForm()
     return render(request, 'paper2slide/step-2.html', {'template_list': template_list, 'form': form})
 
-def handle_template(request):
+# TODO: remove
+def apply_template(request):
     # Create slide here
     return redirect('paper2slide:adjust_options')
 
@@ -75,6 +79,7 @@ def pdf_to_text(pdf_file):
         ...
     ])
     """
+    
     paragraphs = extract_data(pdf_file)
 
     output = []
@@ -89,9 +94,9 @@ def pdf_to_text(pdf_file):
             elif len(output)>0 and content["role"] == None and output[-1]["role"]==None:
                 if len(content["content"]) > 20:
                     output[-1]["content"] = output[-1]["content"]+" "+content["content"]
-                else:
-                    output.append({"role":content["role"],
-                            "content":content["content"]})
+            else:
+                output.append({"role":content["role"],
+                        "content":content["content"]})
 
     output = summarize_text(output)
 
@@ -121,3 +126,4 @@ def generate_slide(paper_summary):
     :return: pptx slide file
     """
     pass
+

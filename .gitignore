@@ -175,3 +175,7 @@ cython_debug/
 
 node_modules/
 uploads/
+
+
+# Testing files
+test.py
