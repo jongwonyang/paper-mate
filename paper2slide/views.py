@@ -41,6 +41,9 @@ def process_pdf(request, pdf_file_name):
 def handle_template(request, summary_json_file):
     if request.method == 'POST':
         # create slide here
+        with open(settings.MEDIA_ROOT / summary_json_file, 'r') as file:
+            summary_text = file.read()
+            generate_slide(summary_text)
         return redirect('paper2slide:adjust_options')
     template_list = [
         {'id': i, 'title': f'title {i}', 'thumbnail': f'https://picsum.photos/300/200?random={i}'} for i in range(10) 
