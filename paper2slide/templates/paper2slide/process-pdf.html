@@ -1,5 +1,7 @@
 {{ file|json_script:"filename" }}
 
+<p>문서를 요약중 입니다...</p>
+
 <script>
 const filename = JSON.parse(document.getElementById('filename').textContent);
 
@@ -12,13 +14,16 @@ const ws = new WebSocket(
 );
 
 ws.onmessage = function(e) {
-    console.log(e.data);
+    alert('완료되었습니다!');
+    window.location.pathname = '/p2s/step-2/' + e.data;
 };
 
-window.onload = function() {
+ws.onopen = function() {
+    console.log("ws sending...")
     ws.send(JSON.stringify({
         'filename': filename
     }));
+    console.log("ws sent")
 }
 
 </script>
