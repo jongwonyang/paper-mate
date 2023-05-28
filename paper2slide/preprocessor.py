@@ -1,5 +1,6 @@
 import re
 from gingerit.gingerit import GingerIt
+import openpyxl
 
 def get_cleaned_text(text):
     text = remove_et_al_period(text)
@@ -54,3 +55,68 @@ def correct_grammar(text):
     result_text = '. '.join(corrected_sentences)
     # 결과 반환
     return result_text
+
+
+def extract_references(text):
+    # Remove any leading or trailing whitespaces
+    text = text.strip()
+    
+    # Split the text into individual references using regular expressions
+    references = re.split(r'\[\d+\]', text)
+    
+    # Remove any empty references
+    references = [ref.strip() for ref in references if ref.strip()]
+    
+    # Create a dictionary to store the references with their corresponding numbers
+    references_dict = {}
+    for i, ref in enumerate(references, start=1):
+        references_dict[i] = ref
+    
+    return references_dict
+
+
+def convert_references_section_title(text):
+    # 패턴 매칭을 사용하여 "4. References"와 같은 형태를 "REFERENCES"로 변환
+    converted_text = re.sub(r'^\d*\.*\s*References', 'REFERENCES', text, flags=re.IGNORECASE)
+    
+    return converted_text
+
+
+def extract_table(data):
+    paths = []
+    for i in range(len(data)):
+        # Extract table dimensions
+        row_count = data[i]['row_count']
+        column_count = data[i]['column_count']
+
+        # Create empty workbook and active sheet
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+
+        # Fill table with cell content
+        for cell in data[i]['cells']:
+            row_index = cell['row_index']
+            column_index = cell['column_index']
+            content = cell['content']
+
+            # Check if cell has columnSpan or rowSpan
+            if 'column_span' in cell:
+                column_span = cell['column_span']
+                end_column = column_index + column_span - 1
+                sheet.cell(row=row_index + 1, column=column_index + 1, value=content)
+                sheet.merge_cells(start_row=row_index + 1, start_column=column_index + 1, end_row=row_index + 1,
+                                end_column=end_column + 1)
+            elif 'row_span' in cell:
+                row_span = cell['row_span']
+                end_row = row_index + row_span - 1
+                sheet.cell(row=row_index + 1, column=column_index + 1, value=content)
+                sheet.merge_cells(start_row=row_index + 1, start_column=column_index + 1, end_row=end_row + 1,
+                                end_column=column_index + 1)
+            else:
+                sheet.cell(row=row_index + 1, column=column_index + 1, value=content)
+
+        # Save workbook as XLSX file
+        path = 'table_' + str(i) + '.xlsx'
+        workbook.save(path)
+        paths.append(path)
+    return paths

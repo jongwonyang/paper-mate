@@ -15,5 +15,4 @@ def extract_data(path):
     poller = form_recognizer_client.begin_analyze_document("prebuilt-layout",document=data_bytes)#,content_type='application/pdf')
 
     form_result = poller.result().to_dict()
-    return form_result["paragraphs"]
-    
+    return form_result

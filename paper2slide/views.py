@@ -1,5 +1,6 @@
 from .pdfExtractor import extract_data
 from .summarizer import summarize_text
+from .preprocessor import convert_references_section_title, extract_table
 
 import os
 
@@ -75,29 +76,46 @@ def pdf_to_text(pdf_file):
         ...
     ])
     """
-    
-    paragraphs = extract_data(pdf_file)
-
+    extracted_data = extract_data(pdf_file)
+    paragraphs = extracted_data["paragraphs"]
+    tables = extracted_data["tables"]
+    # print("==============================")
+    # print(paragraphs)
+    # print("==============================")
     output = []
-
+    reference_flag = 0
     for content in paragraphs:
-        if content["role"] == "sectionHeading" or content["role"] == None:
-            if content["content"].lower().strip() == "acknowledgements":
-                break;
-            elif content["content"].upper().strip() == "ABSTRACT":
+        if reference_flag == 0:
+            if convert_references_section_title(content["content"]) == "REFERENCES":
                 output.append({"role":"sectionHeading",
-                        "content": "ABSTRACT"})
-            elif len(output)>0 and content["role"] == None and output[-1]["role"]==None:
-                if len(content["content"]) > 20:
-                    output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+                    "content": "REFERENCES"})
+                reference_flag = 1
+            elif content["role"] == "sectionHeading" or content["role"] == None:
+                if content["content"].upper().strip() == "ACKNOWLEDGEMENTS":
+                    break;
+                elif content["content"].upper().strip() == "ABSTRACT":
+                    output.append({"role":"sectionHeading",
+                            "content": "ABSTRACT"})
+                elif len(output)>0 and content["role"] == None and output[-1]["role"]==None:
+                    if len(content["content"]) > 10:
+                        output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+                else:
+                    output.append({"role":content["role"],
+                            "content":content["content"]})
+        elif reference_flag == 1:
+            if content["role"] == "sectionHeading":
+                reference_flag == 0
             else:
-                output.append({"role":content["role"],
-                        "content":content["content"]})
+                output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+
 
     output = summarize_text(output)
 
-
-    return output
+    processed_data = {}
+    processed_data["sentences"] = output
+    processed_data["tables"] = extract_table(tables)
+    
+    return processed_data
 
 # TODO: Inseo
 def generate_slide(paper_summary):
