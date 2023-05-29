@@ -1,6 +1,11 @@
 import re
 from gingerit.gingerit import GingerIt
 import openpyxl
+import nltk
+
+# Download the necessary resources for sentence tokenization
+nltk.download('punkt')
+
 
 def get_cleaned_text(text):
     text = remove_et_al_period(text)
@@ -23,10 +28,9 @@ def remove_hyphen_spaces(text):
     return corrected_text
 
 def replace_et_al(text):
-    # "et al" 패턴을 정의
-    pattern = re.compile(r'et al(?![.\w])', re.IGNORECASE)
     # 패턴과 일치하는 문자열을 검색하여 "et al."로 대체
-    corrected_text = pattern.sub('et al.', text)
+    corrected_text = text.replace("et al ", "et al.")
+
     # 결과 반환
     return corrected_text
 
@@ -120,3 +124,65 @@ def extract_table(data):
         workbook.save(path)
         paths.append(path)
     return paths
+
+
+def check_match(string, find):
+    # Define the pattern to match
+    pattern = r"(?i)(" + re.escape(find) + r"\s+\d+)(?!:)"
+
+    # Find all matches in the string
+    matches = re.findall(pattern, string)
+    
+    if matches:
+        return [match.lower().replace(" ", "_") for match in matches]
+    else:
+        return None
+
+
+def split_sentences(text):
+    # Tokenize the paragraph into sentences
+    sentences = nltk.sent_tokenize(text)
+
+    return sentences
+
+def data_reconstruction(data):
+    result = []
+    current_section_heading = None
+    previous_section_heading = None
+
+    for sentence in data["sentences"]:
+        if sentence["role"] == "sectionHeading":
+            if current_section_heading is not None:
+                result.append({
+                    previous_section_heading: {
+                        "content": current_section_content,
+                        "summarized": current_section_summarized,
+                        "tables": current_section_tables,
+                        "figures": current_section_figures
+                    }
+                })
+
+            previous_section_heading = sentence["content"]
+            current_section_heading = sentence["content"]
+            current_section_content = None
+            current_section_summarized = None
+            current_section_tables = None
+            current_section_figures = None
+        elif sentence["role"] is None and current_section_heading is not None:
+            current_section_content = sentence["content"]
+            current_section_summarized = sentence["summarized"]
+            current_section_tables = sentence["tables"]
+            current_section_figures = sentence["figures"]
+
+    # Append the last section
+    if current_section_heading is not None:
+        result.append({
+            current_section_heading: {
+                "content": current_section_content,
+                "summarized": current_section_summarized,
+                "tables": current_section_tables,
+                "figures": current_section_figures
+            }
+        })
+
+    return result

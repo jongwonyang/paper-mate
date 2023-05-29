@@ -1,8 +1,9 @@
 from .pdfExtractor import extract_data
 from .summarizer import summarize_text
-from .preprocessor import convert_references_section_title, extract_table
+from .preprocessor import convert_references_section_title, extract_table, check_match, get_cleaned_text, data_reconstruction
 
 import os
+import json
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
@@ -46,7 +47,7 @@ def adjust_options(request):
     return render(request, 'paper2slide/step-3.html', {'filename': filename})
 
 # TODO: Heejae
-def pdf_to_text(pdf_file):
+def pdf_to_text(pdf_file, save_path):
     """
     Divide given paper (pdf file) into sections,
     (e.g. Inroduction, Background, Evaluation ...)
@@ -79,9 +80,7 @@ def pdf_to_text(pdf_file):
     extracted_data = extract_data(pdf_file)
     paragraphs = extracted_data["paragraphs"]
     tables = extracted_data["tables"]
-    # print("==============================")
-    # print(paragraphs)
-    # print("==============================")
+
     output = []
     reference_flag = 0
     for content in paragraphs:
@@ -103,19 +102,36 @@ def pdf_to_text(pdf_file):
                     output.append({"role":content["role"],
                             "content":content["content"]})
         elif reference_flag == 1:
-            if content["role"] == "sectionHeading":
+            if output[-1]["content"] == "REFERENCES":
+                output.append({"role":content["role"],"content":content["content"]})
+            elif content["role"] == "sectionHeading":
                 reference_flag == 0
             else:
                 output[-1]["content"] = output[-1]["content"]+" "+content["content"]
 
+    for i in range(len(output)):
+        output[i]["content"] = get_cleaned_text(output[i]["content"])
+        # et al. 때문에 .으로 문장을 구분하는 방식에 어려움 존재 -> 먼저 제거 후 다시 삽입
 
     output = summarize_text(output)
 
     processed_data = {}
     processed_data["sentences"] = output
     processed_data["tables"] = extract_table(tables)
+
+    for i in range(len(processed_data["sentences"])):
+        processed_data["sentences"][i]["tables"] = check_match(processed_data["sentences"][i]["content"], "table")
+    for i in range(len(processed_data["sentences"])):
+        processed_data["sentences"][i]["figures"] = check_match(processed_data["sentences"][i]["content"], 'figure')
+
+    recon = data_reconstruction(processed_data)
+
+    with open(save_path, 'w') as json_file:
+        json.dump(recon, json_file)
     
-    return processed_data
+    print("data saved at ", save_path)
+
+    return recon, save_path
 
 # TODO: Inseo
 def generate_slide(paper_summary):
