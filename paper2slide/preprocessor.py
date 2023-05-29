@@ -154,12 +154,11 @@ def data_reconstruction(data):
         if sentence["role"] == "sectionHeading":
             if current_section_heading is not None:
                 result.append({
-                    previous_section_heading: {
-                        "content": current_section_content,
-                        "summarized": current_section_summarized,
-                        "tables": current_section_tables,
-                        "figures": current_section_figures
-                    }
+                    "title" : previous_section_heading,
+                    "content": current_section_content,
+                    "summarized": current_section_summarized,
+                    "tables": current_section_tables,
+                    "figures": current_section_figures
                 })
 
             previous_section_heading = sentence["content"]
@@ -182,7 +181,6 @@ def data_reconstruction(data):
             "summarized": current_section_summarized,
             "tables": current_section_tables,
             "figures": current_section_figures
-            
         })
 
     return result

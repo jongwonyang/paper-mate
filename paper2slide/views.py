@@ -1,5 +1,5 @@
 from .pdfExtractor import extract_data
-from .summarizer import summarize_text
+from .summarizer import summarize_text, extract_keywords_from_paragraph
 from .preprocessor import convert_references_section_title, extract_table, check_match, get_cleaned_text, data_reconstruction
 
 import os
@@ -124,14 +124,22 @@ def pdf_to_text(pdf_file, save_path):
     for i in range(len(processed_data["sentences"])):
         processed_data["sentences"][i]["figures"] = check_match(processed_data["sentences"][i]["content"], 'figure')
 
-    recon = data_reconstruction(processed_data)
+    processed_data["sentences"] = data_reconstruction(processed_data)
+    
+    all_text = ""
+    for content in processed_data["sentences"]:
+        if content["content"] is not None:
+            all_text = all_text + " " + content["content"]
+    keywords = extract_keywords_from_paragraph(all_text)
+
+    processed_data["keywords"] = keywords
 
     with open(save_path, 'w') as json_file:
-        json.dump(recon, json_file)
-    
+        json.dump(processed_data, json_file)
+
     print("data saved at ", save_path)
 
-    return recon, save_path
+    return processed_data, save_path
 
 # TODO: Inseo
 def generate_slide(paper_summary):

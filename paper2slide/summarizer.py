@@ -1,6 +1,7 @@
 from transformers import *
 from summarizer import Summarizer
 from .preprocessor import get_cleaned_text, replace_et_al, split_sentences
+from keybert import KeyBERT
 
 def summarize_text(output):
     # Load model, model config and tokenizer via Transformers
@@ -23,4 +24,13 @@ def summarize_text(output):
     
     return output
 
+def extract_keywords_from_paragraph(paragraph):
+    # Initialize the KeyBERT model
+    model = KeyBERT("distilbert-base-nli-mean-tokens")
+
+    # Extract keywords from the paragraph
+    keywords = model.extract_keywords(paragraph, keyphrase_ngram_range=(1, 2), stop_words='english', use_mmr = True,top_n = 20,diversity = 0.3)
+
+    # Return the extracted keywords
+    return keywords
 
