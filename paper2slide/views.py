@@ -6,7 +6,9 @@ import collections
 import collections.abc
 import json
 import win32com.client
-import pandas as pd
+import os
+import fitz
+import cv2
 
 # TODO: Jongwon
 
@@ -63,16 +65,7 @@ slide_layout = {"Title": 0,
                 "Picture with Caption": 8}
 
 
-def generate_slide(paper_summary):
-
-    def RowCol(csv_file_address):
-        results = pd.read_csv(csv_file_address)
-        return len(results.axes[0]), len(results.axes[1])
-
-
-    def dataFrame_csv(csv_file_address):
-        return pd.read_csv(csv_file_address)
-    
+def generate_slide(paper_summary, template, option):
     slide_layout = {"Title": 1,
                 "Title and Content": 2,
                 "Section Header": 3,
@@ -80,536 +73,641 @@ def generate_slide(paper_summary):
                 "Comparison": 5,
                 "Title Only": 6,
                 "Blank": 7,
-                "Contnet with Caption": 8,
+                "Content with Caption": 8,
                 "Picture with Caption": 9}
 
-    def generate_slide(paper_summary):
+    now_dir = os.path.dirname(os.path.abspath(__file__))
 
-        paper_summary = json.loads(paper_summary)
-        name = paper_summary["UserInfo"]["UserID"] + \
-            "_" + paper_summary["UserInfo"]["RequestID"]
+    def just_insert_text(presentation, title, summary_seq, option):
+
+        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+        new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+        
+        new_slide.Select()
+        title = title
+
+        #일단 첫 페이지 만들어보기
+        new_slide.Shapes.Item(1).TextFrame.TextRange.Text = title
+        new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
+
+        if(len(summary_seq) == 1):
+            new_slide.Shapes.Item(2).TextFrame.TextRange.Text = summary_seq[0]
+            new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.Bullet.Visible = True
+            new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
+            new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
+            new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Name = option["font"]
+            return
+
+
+        body = new_slide.Shapes.Item(2).TextFrame.TextRange
+        Textinsertion = 0
+        for numinput, _  in enumerate(summary_seq):
+            numiput = numinput+1
+
+        for index1, _ in enumerate(summary_seq):
+            this_paragraph = body.Paragraphs(index1+1)
+            if (numinput == Textinsertion +1):
+                this_paragraph.Text = summary_seq[index1]
+                Textinsertion = Textinsertion +1
+            else:
+                this_paragraph.Text = summary_seq[index1] + "\n"
+                Textinsertion = Textinsertion +1
+            this_paragraph.ParagraphFormat.Bullet.Visible = True
+
+        new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
+        new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
+        new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Name = option["font"]
+
+        #만약 글자가 너무 작으면...
+        n = 2
+        while(new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Size < 26):
+            #현재 페이지 삭제
+            for i in range(n-1):
+                presentation.Slides(presentation.Slides.Count).Delete()
+
+            #일단 입력할 문장들을 n개로 분할하기
+            summary_seq_seq = []
+            sub_list_size = len(summary_seq) // n 
+            start = 0
+            
+            for _ in range(n-1):
+                sublist = summary_seq[start:start+sub_list_size]
+                summary_seq_seq.append(sublist)
+                start += sub_list_size
+            
+            sublist = summary_seq[start:]
+            summary_seq_seq.append(sublist)
+
+            #입력하기
+            for _, seq in enumerate(summary_seq_seq):
+                layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+                new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+                new_slide.Shapes.Item(1).TextFrame.TextRange.Text = title
+                new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
+                body = new_slide.Shapes.Item(2).TextFrame.TextRange
+                Textinsertion = 0
+                
+                for numinput, _  in enumerate(seq):
+                    numinput = numinput+1
+
+                for index1, _ in enumerate(seq):
+                    this_paragraph = body.Paragraphs(index1+1)
+                    if (numinput == Textinsertion +1):
+                        this_paragraph.Text = seq[index1]
+                        Textinsertion = Textinsertion +1
+                    else:
+                        this_paragraph.Text = seq[index1] + "\n"
+                        Textinsertion = Textinsertion +1
+                    this_paragraph.ParagraphFormat.Bullet.Visible = True
+
+                new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
+                new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
+                new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Name = option["font"]
+
+            n += 1
+
+
+    def insert_text_with_picture(presentation, title, summary_seq, picture_seq, option):
+        
+        index_of_picture_sentence = []
+        picture_list =[]
+        for i, val in enumerate(picture_seq):
+            if i & 1 == True:
+                index_of_picture_sentence.append(val)
+            else:
+                picture_list.append(val)
+
+        print(f"picture_list: {picture_list}")
+        print(f"index_of_picture_sentence: {index_of_picture_sentence}")
+
+
+        summary_seq_seq = []
+        LastSentenceDoesntIncludePictureFlag = True
+        start = 0
+        for index, pivot in enumerate(index_of_picture_sentence):
+            print(f"pivot: {pivot}")
+            
+            # if len(picture_seq) == 2:
+            #     seq = summary_seq[0:pivot-1]
+            #     seq.append(None)
+            #     summary_seq_seq.append(seq)
+            #     seq = []
+            #     seq.append(summary_seq[pivot])
+            #     seq.append(picture_list[0])
+            #     summary_seq_seq.append(seq)
+            #     pass
+
+            if pivot == 0:
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(picture_list[index])
+                summary_seq_seq.append(seq)
+                start = 1
+            elif pivot == len(summary_seq):
+                LastSentenceDoesntIncludePictureFlag = False
+                seq = summary_seq[start:pivot]
+                seq.append(None)
+                summary_seq_seq.append(seq)           
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(picture_list[index])
+                summary_seq_seq.append(seq)
+                start = pivot +1
+            else:
+                seq = summary_seq[start:pivot]
+                seq.append(None)
+                summary_seq_seq.append(seq)
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(picture_list[index])
+                summary_seq_seq.append(seq)
+                start = pivot +1
+                
+        if LastSentenceDoesntIncludePictureFlag:
+            seq = summary_seq[pivot+1:]
+            seq.append(None)
+            summary_seq_seq.append(seq)
+
+        for i, s in enumerate(summary_seq_seq):
+            print(f"summary_seq_seq[{i}]: {s}")
+
+
+        #이제 만들어놓은 summary_seq_seq을 바탕으로 슬라이드 생성!
+        for sentences in summary_seq_seq:
+            if sentences[-1] == None:
+                if len(sentences) == 1:
+                    pass
+                else:
+                    print(f"sentences[0:len(sentences)-1]: {sentences[0:len(sentences)-1]}")
+                    just_insert_text(presentation, title, sentences[0:len(sentences)-1], option)
+            else:
+                layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Picture with Caption"])
+                new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+
+                new_slide.Shapes.Item(1).TextFrame.TextRange.Text = title
+                new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
+                
+                new_slide.Shapes.Item(2).Fill.UserPicture(now_dir + "\\" + sentences[1])
+                
+                new_slide.Shapes.Item(3).TextFrame.TextRange.Text = sentences[0]
+                new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Bullet.Visible = False
+                new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
+                new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
+                new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Name = option["font"]
+
+
+
+    def insert_text_with_table(presentation, title, summary_seq, table_seq, option):
+        index_of_table_sentence = []
+        table_list =[]
+        for i, val in enumerate(table_seq):
+            if i & 1 == True:
+                index_of_table_sentence.append(val)
+            else:
+                table_list.append(val)
+
+        print(f"table_list: {table_list}")
+        print(f"index_of_table_sentence: {index_of_table_sentence}")
+
+
+        summary_seq_seq = []
+        LastSentenceDoesntIncludeTableFlag = True
+        start = 0
+        for index, pivot in enumerate(index_of_table_sentence):
+            print(f"pivot: {pivot}")
+            print(f'len(summary_seq): {len(summary_seq)}')
+
+            # if len(table_seq) == 2:
+            #     seq = summary_seq[0:pivot]
+            #     seq.append(None)
+            #     summary_seq_seq.append(seq)
+            #     seq = []
+            #     seq.append(summary_seq[pivot])
+            #     seq.append(table_list[0])
+            #     summary_seq_seq.append(seq)
+            #     pass
+
+            if pivot == 0:
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(table_list[index])
+                summary_seq_seq.append(seq)
+                start = 1
+            elif pivot == len(summary_seq):
+                LastSentenceDoesntIncludeTableFlag = False
+                seq = summary_seq[start:pivot]
+                seq.append(None)
+                summary_seq_seq.append(seq)           
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(table_list[index])
+                summary_seq_seq.append(seq)
+                start = pivot +1
+            else:
+                seq = summary_seq[start:pivot]
+                seq.append(None)
+                summary_seq_seq.append(seq)
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(table_list[index])
+                summary_seq_seq.append(seq)
+                start = pivot +1
+                
+        if LastSentenceDoesntIncludeTableFlag:
+            seq = summary_seq[pivot+1:]
+            seq.append(None)
+            summary_seq_seq.append(seq)
+
+        for i, s in enumerate(summary_seq_seq):
+            print(f"summary_seq_seq[{i}]: {s}")
+
+        # #임시로 하나 만들어보기
+        # layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+        # new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+
+        # new_slide.Shapes.Item(1).TextFrame.TextRange.Text = option["title"]
+        # new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["titlefont"]
+
+        # excel = win32com.client.gencache.EnsureDispatch('Excel.Application')
+        # workbook = excel.Workbooks.Open(now_dir + "\\" + table_list[0])
+        # worksheet = workbook.Worksheets('Sheet')
+        # base_cell = worksheet.Range("A1")
+        # table_range = base_cell.CurrentRegion
+        # table_range.Copy()
+
+        # new_slide.Shapes.PasteSpecial()
+
+        #이제 만들어놓은 summary_seq_seq을 바탕으로 슬라이드 생성!
+        for sentences in summary_seq_seq:
+            if sentences[-1] == None:
+                if len(sentences) == 1:
+                    pass
+                else:
+                    print(f"sentences[0:len(sentences)-1]: {sentences[0:len(sentences)-1]}")
+                    just_insert_text(presentation, title, sentences[0:len(sentences)-1], option)
+            else:
+                layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+                new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+
+                new_slide.Shapes.Item(1).TextFrame.TextRange.Text = title
+                new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
+                
+                excel = win32com.client.gencache.EnsureDispatch('Excel.Application')
+                workbook = excel.Workbooks.Open(now_dir + "\\" + sentences[-1])
+                worksheet = workbook.Worksheets('Sheet')
+                base_cell = worksheet.Range("A1")
+                table_range = base_cell.CurrentRegion
+                table_range.Copy()
+
+
+                table_shape_range = new_slide.Shapes.PasteSpecial()
+                excel.Quit()
+
+                for shape in new_slide.Shapes:
+                    if shape.HasTable:
+                        table = shape
+                        print("TABLE!!!!")
+                        break
+
+
+                table.Table.ScaleProportionally(min(1000//table.Width, 700//table.Height))
+                table.Table.Title = sentences[1]
+                
+            
+                new_slide.Shapes.AddTextbox(1, 100, 100, 100, 100)
+                new_slide.Shapes.Item(3).TextFrame.TextRange.Text = sentences[0]
+                new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Bullet.Visible = False
+                new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
+                new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
+                new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Name = option["font"]
+                new_slide.Shapes.Item(3).TextFrame.WordWrap = False
+
+                #new_slide.Shapes.Item(3).Top = table_shape_range.Top - new_slide.Shapes.Item(3).Height
+                new_slide.Shapes.Item(3).Top = (table.Top + table.Height+ new_slide.Shapes.Item(3).Height)
+                new_slide.Shapes.Item(3).Left = table.Left
+
+                table.Name = "a"
+                new_slide.Shapes.Item(3).Name = "b"
+
+                #table.Left = (new_slide.Master.Width / 2) - (table.Width / 2)
+                # group = new_slide.Shapes.Range(["a", "b"]).Group()
+                # table_shape_range.Align(1, True)    #https://learn.microsoft.com/en-us/office/vba/api/office.msoaligncmd
+                #new_slide.Shapes.Range(["a","b"]).Align(1, True)
+
+                for row in table.Table.Rows:
+                    for cell in row.Cells:
+                        cell.Shape.TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
+                        
+                # group.Align(4, True)
+
+    
+    def insert_text_with_both(presentation, title, summary_seq, figure_seq, table_seq, option):
+        index_of_contents_sentence = []
+        index_of_table_sentence = []
+        index_of_picture_sentence = []
+        picture_list =[]
+        table_list =[]
+        contents_list = []
+
+        for i, val in enumerate(table_seq):
+            if i & 1 == True:
+                index_of_table_sentence.append(val)
+            else:
+                table_list.append(val)
+
+        print(f"table_list: {table_list}")
+        print(f"index_of_table_sentence: {index_of_table_sentence}")
+
+        for i, val in enumerate(figure_seq):
+            if i & 1 == True:
+                index_of_picture_sentence.append(val)
+            else:
+                picture_list.append(val)
+
+        print(f"picture_list: {picture_list}")
+        print(f"index_of_picture_sentence: {index_of_picture_sentence}")
+
+        index_of_contents_sentence = index_of_picture_sentence + index_of_table_sentence
+        index_of_contents_sentence = sorted(index_of_contents_sentence)
+
+        for index in index_of_contents_sentence:
+            try:
+                i = figure_seq.index(index)
+                contents_list.append(figure_seq[i-1])
+            except ValueError:
+                contents_list.append(table_seq[table_seq.index(index)-1])
+
+
+        summary_seq_seq = []
+        LastSentenceDoesntIncludeTableFlag = True
+        LastSentenceDoesntIncludePictureFlag = True
+
+        start = 0
+        for index, pivot in enumerate(index_of_contents_sentence):
+            print(f"pivot: {pivot}")
+            print(f'len(summary_seq): {len(summary_seq)}')
+
+            # if len(table_seq) == 2:
+            #     seq = summary_seq[0:pivot]
+            #     seq.append(None)
+            #     summary_seq_seq.append(seq)
+            #     seq = []
+            #     seq.append(summary_seq[pivot])
+            #     seq.append(table_list[0])
+            #     summary_seq_seq.append(seq)
+            #     pass
+            if pivot == 0:
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(contents_list[index])
+                summary_seq_seq.append(seq)
+                start = 1
+            elif pivot == len(summary_seq):
+                LastSentenceDoesntIncludeTableFlag = False
+                seq = summary_seq[start:pivot]
+                seq.append(None)
+                summary_seq_seq.append(seq)           
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(contents_list[index])
+                summary_seq_seq.append(seq)
+                start = pivot +1
+            else:
+                seq = summary_seq[start:pivot]
+                seq.append(None)
+                summary_seq_seq.append(seq)
+                seq = []
+                seq.append(summary_seq[pivot])
+                seq.append(contents_list[index])
+                summary_seq_seq.append(seq)
+                start = pivot +1
+                
+        if LastSentenceDoesntIncludeTableFlag and LastSentenceDoesntIncludePictureFlag:
+            seq = summary_seq[pivot+1:]
+            seq.append(None)
+            summary_seq_seq.append(seq)
+
+        for i, s in enumerate(summary_seq_seq):
+            print(f"summary_seq_seq[{i}]: {s}")
+
+
+        for sentences in summary_seq_seq:
+            if len(sentences) == 1:
+                pass
+            elif sentences[-1] == None:
+                just_insert_text(presentation, title, sentences[0: len(sentences) -1], option)
+            elif sentences[-1].split(".")[1] == "png":
+                tmp = []
+                tmp.append(sentences[-1])
+                tmp.append(0)
+                insert_text_with_picture(presentation, title, sentences[0:1], tmp, option)
+            elif sentences[-1].split(".")[1] == "xlsx":
+                tmp = []
+                tmp.append(sentences[-1])
+                tmp.append(0)
+                insert_text_with_table(presentation, title, sentences[0:1], tmp, option)
+        
+
+    ##########################################################################################################################################
+    def generate_slides(paper_summary, template, option):
+        
+        
+        with open(paper_summary, encoding='utf-8') as file:
+            paper_summary = json.load(file)
+
+        # with open(option, encoding='utf-8') as file:
+        #     option = json.load(file)
+
+        for i in paper_summary:
+            for sentence in i["summarized"]:
+                with open("tmp.txt", "a") as file:
+                    file.write(sentence)
+
+        save_name = now_dir + "\\" +str(option["title"]) + ".pptx"
 
         PPTApp = win32com.client.gencache.EnsureDispatch("PowerPoint.Application")
         presentation = PPTApp.Presentations.Add()
 
-        if(paper_summary["UserInfo"]["template"] != "basic"):
-            template_path = paper_summary["UserInfo"]["template"]
-            presentation.ApplyTemplate(template_path)
+        # if(template != "basic"):
+        #     presentation.ApplyTemplate(now_dir+ "\\" +template)
 
-        for slide_info in paper_summary["slideInfos"]:
-            layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout[slide_info["layout"]])
-            new_slide = presentation.Slides.AddSlide(presentation.Slides.Count + 1, layout)
+        #표지 만들기
+        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title"])
+        new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
 
-            for index1, placeholder_info in enumerate(slide_info["placeholder"]):
-                
-                placeholder_type = placeholder_info["type"]
-                if (placeholder_type == "title"):
-                    new_slide.Shapes.Item(index1+1).TextFrame.TextRange.Text = placeholder_info["content"][0]["item"]
-
-                elif (placeholder_type == "subtitle"):
-                    new_slide.Shapes.Item(index1+1).TextFrame.TextRange.Text = placeholder_info["content"][0]["item"]
-                
-                elif (placeholder_type == 'contents placeholder'):
-                    body = new_slide.Shapes.Item(index1+1).TextFrame.TextRange
-                    Textinsertion = 0
-                    for index2, content in enumerate(placeholder_info["content"]):
-                        if (content["type"] == "text"):
-                            this_paragraph = body.Paragraphs(index2+1)
-                            if (placeholder_info["numberOfTextcontent"] == Textinsertion +1):
-                                this_paragraph.Text = content["item"]
-                                Textinsertion = Textinsertion +1
-                            else:
-                                this_paragraph.Text = content["item"] + "\n"
-                                Textinsertion = Textinsertion +1
-                            #this_paragraph.IndentLevel = content["level"] +1
-                            this_paragraph.ParagraphFormat.Bullet.Visible = content["bullet"]
+        new_slide.Shapes.Item(1).TextFrame.TextRange.Text = option["title"]
+        new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["titlefont"]
+        new_slide.Shapes.Item(2).TextFrame.TextRange.Text = option["username"]
+        new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Name = option["titlefont"]
 
 
-                        elif (content["type"] == "table"):
-                            table_csv_file = placeholder_info["content"][index2]["item"]
-                            csv_df = pandas.read_csv(table_csv_file)
-                            
-                            header = pandas.DataFrame(csv_df.columns).transpose()
-                            numRow, numCol = csv_processor.RowCol(table_csv_file)
-                            numRow = numRow + 1
-                            
-                            table_shape = new_slide.Shapes.AddTable(NumRows = numRow, NumColumns = numCol,
-                                                                    Left = placeholder_info["content"][index2]["Left"],
-                                                                    Top = placeholder_info["content"][index2]["Top"],
-                                                                    Width = placeholder_info["content"][index2]["Width"],
-                                                                    Height = placeholder_info["content"][index2]["Height"])
-                            table = table_shape.Table
-                            this_shape = new_slide.Shapes.Item(index1+1)
-                            this_width = this_shape.Width
-                            this_height = this_shape.Height
+        #목차 만들기
+        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+        new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
 
-                            print(f"height: {this_height}")
+        new_slide.Shapes.Item(1).TextFrame.TextRange.Text = "Contents"
+        new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["titlefont"]
+        body = new_slide.Shapes.Item(2).TextFrame.TextRange
+        Textinsertion = 0
+        for numheader, _  in enumerate(paper_summary):
+            numheader = numheader+1
 
-                            if this_height > placeholder_info["content"][index2]["Height"]:
-                                divider = 2
-                                while (this_height > placeholder_info["content"][index2]["Height"]):
+        for index1, _ in enumerate(paper_summary):
+            this_paragraph = body.Paragraphs(index1+1)
+            if (numheader == Textinsertion +1):
+                this_paragraph.Text = paper_summary[index1]["Title"]
+                this_paragraph.Font.Name = option["font"]
+                Textinsertion = Textinsertion +1
+            else:
+                this_paragraph.Text = paper_summary[index1]["Title"] + "\n"
+                this_paragraph.Font.Name = option["font"]
+                Textinsertion = Textinsertion +1
+            this_paragraph.ParagraphFormat.Bullet.Visible = True
 
-                                    table = table_shape.Table
-                                    this_shape = new_slide.Shapes.Item(index1+1)
-                                    this_width = this_shape.Width
-                                    this_height = this_shape.Height
+    #######################################################################################################################################
+        #본격적인 내용
+        for i, summary in enumerate(paper_summary):
+            
+            #서브섹션 타이틀 페이지 만들기
+            layout = layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Section Header"])
+            new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+            new_slide.Select()
 
-                                    print("===================")
-                                    print(f"divider: {divider}")
-                                    
-                                    print(f"this_shape: {this_shape}")
-                                    
-                                    if this_shape.HasTable:
-                                        this_shape.Delete()
-                                        print("this_shape is deleted")
-                                    
+            new_slide.Shapes.Item(1).TextFrame.TextRange.Text = summary["Title"]
+            new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
+            new_slide.Shapes.Item(2).TextFrame.TextRange.Text = option["title"]
+            new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Name = option["titlefont"]
 
-                                    df_list = list()
-                                    whole_df = csv_df.copy()
-                                    pivot = len(whole_df.index)//divider
-                                    remainder = len(whole_df.index)%divider
-                                    header.columns = range(header.shape[1])
-                                    if divider >= 2:
-                                        for i in range(divider):
-                                                if(i == 0):
-                                                    tmp = whole_df.copy().truncate(after = pivot)
-                                                    tmp.columns = range(tmp.shape[1])
-                                                    df_list.append(pandas.concat([header, tmp], axis=0))
-                                                elif(i * pivot < (i+1)* pivot -1):
-                                                    tmp = whole_df.copy().truncate(before = i * pivot, after = (i+1)* pivot-1)
-                                                    tmp.columns = range(tmp.shape[1])
-                                                    df_list.append(pandas.concat([header, tmp]))
-                                        if remainder > 0 :
-                                            tmp = whole_df.copy().truncate(before = divider * pivot, after = len(whole_df.index))
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-                                    else:
-                                        if remainder == 0:
-                                            tmp = whole_df.copy().truncate(after = pivot -1)
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-                                            tmp = header,whole_df.copy().truncate(before = pivot)
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-                                        else:
-                                            tmp = whole_df.copy().truncate(after = pivot)
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-                                            tmp = header,whole_df.copy().truncate(before = pivot+1)
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
+            #figure와 table 개수 세기
+            n_figure = 0
+            n_table = 0
+            for n_figure, _ in enumerate(summary["figures"]):
+                pass
+            for n_table, _ in enumerate(summary["tables"]):
+                pass
+            
+            #figure와 table이 없는 경우(text만 있는 경우) slide 만들기
+            if (n_figure == 0) and (n_table == 0):
+                just_insert_text(presentation, summary["Title"], summary["summarized"], option)
+            elif (n_figure != 0) and (n_table == 0):
+                insert_text_with_picture(presentation, summary["Title"], summary["summarized"], summary["figures"],option)
+            elif (n_figure == 0) and (n_table != 0):
+                insert_text_with_table(presentation, summary["Title"], summary["summarized"], summary["tables"],option)
+            else:
+                insert_text_with_both(presentation, summary["Title"], summary["summarized"], summary["figures"], summary["tables"],option)
 
+    #######################################################################################################################################
+        #QnA 페이지 만들기
+        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Blank"])
+        new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+        new_slide.Select()
 
-                                    first_df = df_list[0]
+        text_box = new_slide.Shapes.AddTextbox(1, 100, 100, 100, 100)
+        text_frame = text_box.TextFrame
+        text_frame.TextRange.Text = "QnA"
+        text_frame.AutoSize = win32com.client.constants.ppAutoSizeShapeToFitText  #https://learn.microsoft.com/en-us/office/vba/api/powerpoint.ppautosize
+        text_frame.WordWrap = False
+        text_frame.TextRange.Font.Size = 50
+        text_frame.TextRange.Font.Name = option["titlefont"]
 
-                                    print(f"first_df")
-                                    print(first_df)
+        text_frame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
 
-                                    table_shape = new_slide.Shapes.AddTable(NumRows = len(first_df.index), NumColumns = len(first_df.columns)
-                                                                            # ,
-                                                                            # Left = placeholder_info["content"][0]["Left"],
-                                                                            # Top = placeholder_info["content"][0]["Top"],
-                                                                            # Width = placeholder_info["content"][0]["Width"],
-                                                                            # Height = placeholder_info["content"][0]["Height"]
-                                                                            )
-                                    table = table_shape.Table
-                                    # print(f"firstRow: {first_df.iloc[0]}")
-                                    for k in range(len(first_df.index)):
-                                        for l in range(len(first_df.columns)):
-                                            # cell = table.Cell(k+1, l+1)
-                                            table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(first_df.iloc[k,l])
+        s = new_slide.Shapes.Range()
+        s.Align(1, True)    #https://learn.microsoft.com/en-us/office/vba/api/office.msoaligncmd
+        s.Align(4, True)
 
-                                    this_height = new_slide.Shapes.Item(index1+1).Height
-                                    print(f"height: {this_height}")
-                                    if this_height <= placeholder_info["content"][index2]["Height"]:
-                                        for j in range(1, divider):
-                                            new_slide.Copy()
-                                            presentation.Slides.Paste(presentation.Slides.Count + 1)
-                                            new_slide = presentation.Slides(presentation.Slides.Count)
-                                            for element in range(new_slide.Shapes.Count):
-                                                t_shape = new_slide.Shapes.Item(element+1)
-                                                if t_shape.HasTable:
-                                                    t_shape.Delete()
-                                                    this_df = df_list[j]
-                                                    table_shape = new_slide.Shapes.AddTable(NumRows = len(this_df.index), NumColumns = len(this_df.columns)
-                                                                                            # ,
-                                                                                            # Left = placeholder_info["content"][0]["Left"],
-                                                                                            # Top = placeholder_info["content"][0]["Top"],
-                                                                                            # Width = placeholder_info["content"][0]["Width"],
-                                                                                            # Height = placeholder_info["content"][0]["Height"]
-                                                                                            )
-                                                    table = table_shape.Table
-                                                    for m in range(len(this_df.index)):
-                                                        for n in range(len(this_df.columns)):
-                                                            cell = table.Cell(m+1, n+1)
-                                                            cell.Shape.TextFrame.TextRange.Text = str(this_df.iloc[m,n])
+        if(option["wide"] == True):
+            slide_master = presentation.SlideMaster
+            layout = None
+            for custom_layout in slide_master.CustomLayouts:
+                if custom_layout.Width == 1280 and custom_layout.Height == 720:
+                    layout = custom_layout
+                    break
+            if layout is not None:
+                for slide in presentation.Slides:
+                    slide.Layout = layout
 
-                                    else: divider = divider +1
-                            else:
-                                header.columns = range(header.shape[1])
-                                tmp = csv_df
-                                tmp.columns = range(tmp.shape[1])
-                                csv_df = pandas.concat([header, tmp])
-                                for k in range(len(first_df.index)):
-                                    for l in range(len(first_df.columns)):
-                                        # cell = table.Cell(k+1, l+1)
-                                        table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(csv_df.iloc[k,l])
-
-                        elif (content["type"] == "image"):
-                            new_slide.Shapes.AddPicture(FileName = placeholder_info["content"][index2]["item"],
-                                                                    LinkToFile = False,
-                                                                    SaveWithDocument = True,
-                                                                    Left = placeholder_info["content"][index2]["Left"],
-                                                                    Top = placeholder_info["content"][index2]["Top"],
-                                                                    Width = placeholder_info["content"][index2]["Width"],
-                                                                    Height = placeholder_info["content"][index2]["Height"])
-                                
-                
-                elif (placeholder_type == "text placeholder"):
-                    body = new_slide.Shapes.Item(index1+1).TextFrame.TextRange
-                    for index2, content in enumerate(placeholder_info["content"]):
-                        this_paragraph = body.Paragraphs(index2+1)
-                        if (placeholder_info["numberOfTextcontent"] == index2+1):
-                                this_paragraph.Text = content["item"]
-                        else:
-                                this_paragraph.Text = content["item"] + "\n"
-
-                elif (placeholder_type == "picture placeholder"):
-                    new_slide.Shapes.AddPicture(FileName = placeholder_info["content"][0]["item"],
-                                                    LinkToFile = False,
-                                                    SaveWithDocument = True,
-                                                    Left = placeholder_info["content"][0]["Left"],
-                                                    Top = placeholder_info["content"][0]["Top"],
-                                                    Width = placeholder_info["content"][0]["Width"],
-                                                    Height = placeholder_info["content"][0]["Height"])
-
-                elif (placeholder_type == "table placeholder"):
-                    table_csv_file = placeholder_info["content"][0]["item"]
-                    csv_df = pandas.read_csv(table_csv_file)
-                    
-                    header = pandas.DataFrame(csv_df.columns).transpose()
-
-                    numRow, numCol = csv_processor.RowCol(table_csv_file)
-                    numRow = numRow + 1
-                    table_shape = new_slide.Shapes.AddTable(NumRows = numRow, NumColumns = numCol,
-                                                            Left = placeholder_info["content"][0]["Left"],
-                                                            Top = placeholder_info["content"][0]["Top"],
-                                                            Width = placeholder_info["content"][0]["Width"],
-                                                            Height = placeholder_info["content"][0]["Height"])
-                    table = table_shape.Table
-                    this_shape = new_slide.Shapes.Item(index1+1)
-                    this_width = this_shape.Width
-                    this_height = this_shape.Height
-
-
-                    if this_height > placeholder_info["content"][0]["Height"]:
-                        divider = 2
-
-                        print(f"this_shape: {this_shape}")
-
-                        this_shape.Delete
-
-                        print("this_shape is deleted")
-
-                        while (this_height > placeholder_info["content"][0]["Height"]):
-                            df_list = list()
-                            whole_df = csv_df.copy()
-                            pivot = len(whole_df.index)//divider
-                            remainder = len(whole_df.index)%divider
-                            header.columns = range(header.shape[1])
-                            if divider > 2:
-                                for i in range(divider):
-                                    if(i * pivot < (i+1)* pivot -1): 
-                                        tmp = whole_df.copy().truncate(before = i * pivot, after = (i+1)* pivot-1)
-                                        tmp.columns = range(tmp.shape[1])
-                                        df_list.append(pandas.concat([header, ]))
-                                if remainder > 0 :
-                                    tmp = whole_df.copy().truncate(before = divider * pivot, after = len(whole_df.index))
-                                    tmp.columns = range(tmp.shape[1])
-                                    df_list.append(pandas.concat([header, tmp]))
-                            else:
-                                if remainder == 0:
-                                    tmp = whole_df.copy().truncate(after = pivot -1)
-                                    tmp.columns = range(tmp.shape[1])
-                                    df_list.append(pandas.concat([header, tmp]))
-                                    tmp = whole_df.copy().truncate(before = pivot)
-                                    tmp.columns = range(tmp.shape[1])
-                                    df_list.append(pandas.concat([header, tmp]))
-                                else:
-                                    tmp = whole_df.copy().truncate(after = pivot)
-                                    tmp.columns = range(tmp.shape[1])
-                                    df_list.append(pandas.concat([header,tmp]))
-                                    tmp = whole_df.copy().truncate(before = pivot+1)
-                                    tmp.columns = range(tmp.shape[1])
-                                    df_list.append(pandas.concat([header,tmp]))
-
-                            first_df = df_list[0]
-                            table_shape = new_slide.Shapes.AddTable(NumRows = len(first_df.index), NumColumns = len(first_df.columns),
-                                                                    Left = placeholder_info["content"][0]["Left"],
-                                                                    Top = placeholder_info["content"][0]["Top"],
-                                                                    Width = placeholder_info["content"][0]["Width"],
-                                                                    Height = placeholder_info["content"][0]["Height"])
-                            for k in range(len(first_df.index)):
-                                for l in range(len(first_df.columns)):
-                                    cell = table.Cell(k+1, l+1)
-                                    cell.Shape.TextFrame.TextRange.Text = first_df.iloc[k,l]
-
-                            this_height = new_slide.Shapes.Item(index1+1).Height
-                            if this_height <= placeholder_info["content"][0]["Height"]:
-                                for j in range(1, divider):
-                                    new_slide.Copy()
-                                    presentation.Slides.Paste(presentation.Slides.Count + 1)
-                                    new_slide = presentation.Slides(presentation.Slides.Count)
-                                    for element in range(new_slide.Shapes.Count):
-                                        t_shape = new_slide.Shapes.Item(element+1)
-                                        if t_shape.HasTable:
-                                            t_shape.Delete
-                                            this_df = df_list[j]
-                                            table_shape = new_slide.Shapes.AddTable(NumRows = len(this_df.index), NumColumns = len(this_df.columns),
-                                                                    Left = placeholder_info["content"][0]["Left"],
-                                                                    Top = placeholder_info["content"][0]["Top"],
-                                                                    Width = placeholder_info["content"][0]["Width"],
-                                                                    Height = placeholder_info["content"][0]["Height"])
-                                            for k in range(len(this_df.index)):
-                                                for l in range(len(this_df.columns)):
-                                                    cell = table.Cell(k+1, l+1)
-                                                    cell.Shape.TextFrame.TextRange.Text = this_df.iloc[k,l]
-
-                            else: divider = divider +1
-
-                    else:
-                        header.columns = range(header.shape[1])
-                        csv_df.columns = range(csv_df.shape[1])
-                        csv_df = pandas.concat([header, csv_df])
-                        for k in range(len(first_df.index)):
-                            for l in range(len(first_df.columns)):
-                                # cell = table.Cell(k+1, l+1)
-                                table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(csv_df.iloc[k,l])
-
-                else: #None
-                    Textinsertion = 0
-                    for index2, content in enumerate(placeholder_info["content"]):
-                        shape = new_slide.Shapes.AddShape( 1 ,Left = placeholder_info["content"][0]["Left"],
-                                                    Top = placeholder_info["content"][0]["Top"],
-                                                    Width = placeholder_info["content"][0]["Width"],
-                                                    Height = placeholder_info["content"][0]["Height"])
-                        shape.Fill.Transparency = 1.0
-                        shape.Line.Transparency = 1.0
-                        if (content["type"] == "text"):
-                            body = new_slide.Shapes.Item(index1+1+index2).TextFrame.TextRange
-                            this_paragraph = body.Paragraphs(index2+1)
-                            
-                            this_paragraph.Text = content["item"]
-                                
-                            
-                            #this_paragraph.IndentLevel = content["level"] +1
-                            this_paragraph.ParagraphFormat.Bullet.Visible = content["bullet"]
-
-                        elif (content["type"] == "table"):
-                            table_csv_file = placeholder_info["content"][0]["item"]
-                            csv_df = pandas.read_csv(table_csv_file)
-
-                            header = pandas.DataFrame(csv_df.columns).transpose()
-
-                            numRow, numCol = csv_processor.RowCol(table_csv_file)
-                            numRow = numRow + 1
-                            table_shape = new_slide.Shapes.AddTable(NumRows = numRow, NumColumns = numCol,
-                                                                    Left = placeholder_info["content"][0]["Left"],
-                                                                    Top = placeholder_info["content"][0]["Top"],
-                                                                    Width = placeholder_info["content"][0]["Width"],
-                                                                    Height = placeholder_info["content"][0]["Height"])
-                            table = table_shape.Table
-                            this_shape = new_slide.Shapes.Item(index1+1)
-                            this_width = this_shape.Width
-                            this_height = this_shape.Height
-
-                            print(f"height: {this_height}")
-
-                            if this_height > placeholder_info["content"][0]["Height"]:
-                                divider = 2
-                                while (this_height > placeholder_info["content"][0]["Height"]):
-
-                                    table = table_shape.Table
-                                    this_shape = new_slide.Shapes.Item(index1+1)
-                                    this_width = this_shape.Width
-                                    this_height = this_shape.Height
-
-                                    print("===================")
-                                    print(f"divider: {divider}")
-                                    
-                                    print(f"this_shape: {this_shape}")
-                                    
-                                    if this_shape.HasTable:
-                                        this_shape.Delete()
-                                        print("this_shape is deleted")
-                                    
-                                    df_list = list()
-                                    whole_df = csv_df.copy()
-                                    pivot = len(whole_df.index)//divider
-                                    remainder = len(whole_df.index)%divider
-                                    
-                                    header.columns = range(header.shape[1])
-                                    if divider > 2:
-                                        for i in range(divider):
-                                                if(i * pivot < (i+1)* pivot -1):
-                                                    tmp = whole_df.copy().truncate(before = i * pivot, after = (i+1)* pivot-1)
-                                                    tmp.columns = range(tmp.shape[1])
-                                                    df_list.append(pandas.concat([header, tmp]))
-                                        if remainder > 0 :
-                                            tmp = whole_df.copy().truncate(before = divider * pivot, after = len(whole_df.index))
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-                                    else:
-                                        if remainder == 0:
-                                            tmp = whole_df.copy().truncate(after = pivot -1)
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-                                            tmp = whole_df.copy().truncate(before = pivot)
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-                                        else:
-                                            tmp = whole_df.copy().truncate(after = pivot)
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-                                            tmp = whole_df.copy().truncate(before = pivot+1)
-                                            tmp.columns = range(tmp.shape[1])
-                                            df_list.append(pandas.concat([header, tmp]))
-
-
-                                    first_df = df_list[0]
-
-                                    print(f"first_df")
-                                    print(first_df)
-
-                                    table_shape = new_slide.Shapes.AddTable(NumRows = len(first_df.index), NumColumns = len(first_df.columns)
-                                                                            # ,
-                                                                            # Left = placeholder_info["content"][0]["Left"],
-                                                                            # Top = placeholder_info["content"][0]["Top"],
-                                                                            # Width = placeholder_info["content"][0]["Width"],
-                                                                            # Height = placeholder_info["content"][0]["Height"]
-                                                                            )
-                                    table = table_shape.Table
-                                    # print(f"firstRow: {first_df.iloc[0]}")
-                                    for k in range(len(first_df.index)):
-                                        for l in range(len(first_df.columns)):
-                                            # cell = table.Cell(k+1, l+1)
-                                            table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(first_df.iloc[k,l])
-
-                                    this_height = new_slide.Shapes.Item(index1+1).Height
-                                    print(f"height: {this_height}")
-                                    if this_height <= placeholder_info["content"][0]["Height"]:
-                                        for j in range(1, divider):
-                                            new_slide.Copy()
-                                            presentation.Slides.Paste(presentation.Slides.Count + 1)
-                                            new_slide = presentation.Slides(presentation.Slides.Count)
-                                            for element in range(new_slide.Shapes.Count):
-                                                t_shape = new_slide.Shapes.Item(element+1)
-                                                if t_shape.HasTable:
-                                                    t_shape.Delete()
-                                                    this_df = df_list[j]
-                                                    table_shape = new_slide.Shapes.AddTable(NumRows = len(this_df.index), NumColumns = len(this_df.columns)
-                                                                                            # ,
-                                                                                            # Left = placeholder_info["content"][0]["Left"],
-                                                                                            # Top = placeholder_info["content"][0]["Top"],
-                                                                                            # Width = placeholder_info["content"][0]["Width"],
-                                                                                            # Height = placeholder_info["content"][0]["Height"]
-                                                                                            )
-                                                    table = table_shape.Table
-                                                    for m in range(len(this_df.index)):
-                                                        for n in range(len(this_df.columns)):
-                                                            cell = table.Cell(m+1, n+1)
-                                                            cell.Shape.TextFrame.TextRange.Text = str(this_df.iloc[m,n])
-
-                                    else: divider = divider +1
-                            else:
-                                header.columns = range(header.shape[1])
-                                csv_df.columns = range(csv_df.shape[1])
-                                csv_df = pandas.concat([header, csv_df])
-                                for k in range(len(first_df.index)):
-                                    for l in range(len(first_df.columns)):
-                                        # cell = table.Cell(k+1, l+1)
-                                        table.Cell(k+1, l+1).Shape.TextFrame.TextRange.Text = str(csv_df.iloc[k,l])
-
-                        elif (content["type"] == "image"):
-                            new_slide.Shapes.AddPicture(FileName = placeholder_info["content"][index2]["item"],
-                                                                    LinkToFile = False,
-                                                                    SaveWithDocument = True,
-                                                                    Left = placeholder_info["content"][index2]["Left"],
-                                                                    Top = placeholder_info["content"][index2]["Top"],
-                                                                    Width = placeholder_info["content"][index2]["Width"],
-                                                                    Height = placeholder_info["content"][index2]["Height"])
-
-        # presentation.SaveAS(name + '.pptx')
-        # presentation.Close()
-
-        # PPTApp.Quit()
-                                    # layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout[slide_info["layout"]])
-                                    # new_slide = presentation.Slides.AddSlide(presentation.Slides.Count + 1, layout)
-
-
-
-                    
+        if(template != "basic"):
+            presentation.ApplyTemplate(now_dir+ "\\" +template)
 
         
-
-
-        presentation.SaveAS(name + '.pptx')
+        presentation.SaveAs(save_name)
         presentation.Close()
-
         PPTApp.Quit()
 
-    generate_slide(paper_summary)
+    generate_slides(paper_summary, template , option)
 
-    # """
-    # Generate slide with given paper summary information.
+def extract_image(paper):
+    now_dir = os.getcwd()
+    input = paper
+    name = input.split(".")[0]
 
-    # :param paper_summary: summarized paper contents
-    # (The following format is just an example. You can define better format.)
-    # (e.g. [
-    #     {
-    #         'title': 'Introduction',
-    #         'summary': ['This paper is ...', 'We discovered that ...', ...],
-    #         'figure': ['/path/to/file', '/path/to/file', ...]
-    #     },
-    #     {
-    #         'title': 'Overview of CFS and ULE',
-    #         'subtitle': 'Linux CFS',
-    #         'summary': ['Per-core scheduling: Linuxs CFS implements ...', ...],
-    #         'figure': ['/path/to/file', ...]
-    #     }
-    # ])
-    # :return: pptx slide file
-    # """
-    # paper_summary = json.loads(paper_summary)   #문자열 paper_summary를 json객체로 변경
-    # prs = Presentation()                        #새 슬라이드 생성
+    doc = fitz.open(now_dir + "\\" + input)
 
-    # """
-    # 일단 slide_info의 가장 기본형으로 가정하고 개발
-    # slide_info[0]: Title 페이지
-    # slide_info[1]: Title and content
-    # slide_info[2~n-1]: 부제, 내용
-    # slide_info[n]: Q & A page
-    # """
-    # name = paper_summary['user_name']
-    # for slide_info in paper_summary:                 #slide_info에는 각 slide페이지에 대한 정보가 담겨져 있음
-    #     slide = prs.slides.add_slide(slide_info['layout'])
-    #     """
-    #     slide layout
-    #     0: Title
-    #     1: Title and Content
-    #     2: Section Header (sometimes called Segue)
-    #     3: Two Content (side by side bullet textboxes)
-    #     4: Comparison (same but additional title for each side by side content box)
-    #     5: Title Only
-    #     6: Blank
-    #     7: Content with Caption
-    #     8: Picture with Caption
-    #     """
-    #     if slide_info['layout'] == 0:
-    #         title = slide.shapes.title
-    #         subtitle = slide.placehoders[1]
+    if not os.path.exists(now_dir + "\\" + name):
+        os.makedirs(now_dir + "\\" + name + "_whole")
 
-    #         title.text = slide_info['contents']['title']
-    #         subtitle.text = slide_info['contents']['title']
+    if not os.path.exists(now_dir + "\\" + name):
+        os.makedirs(now_dir + "\\" + name + "_whole2")
 
-    # prs.save(name+'.pptx')
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72), dpi=None,
+                            colorspace=fitz.csRGB, clip=True, alpha=True, annots=True)
+        pix.save(f"{name}_whole\\samplepdfimage-%i.png" % page.number)  # save file
+
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72), dpi=None,
+                            colorspace=fitz.csRGB, clip=False, alpha=True, annots=False)
+        pix.save(f"{name}_whole2\\samplepdfimage-%i.png" % page.number)
+
+    input = name
+
+    source_folder_path = os.getcwd() + "\\" + input + "_whole"
+    source_folder_path2 = os.getcwd() + "\\" + input + "_whole2"
+
+    file_list = os.listdir(source_folder_path)
+    file_list2 = os.listdir(source_folder_path2)
+
+    if not os.path.exists(os.getcwd() + "\\" + input + "_cropped"):
+        os.makedirs(os.getcwd() + "\\" + input + "_cropped")
+
+    n = 0
+
+    for i, file in enumerate(file_list):
+
+        with open(source_folder_path+ "\\" +file, 'rb') as image_file:
+            image_data = image_file.read()
+
+        image = cv2.imread(os.getcwd()+ "\\" + input + "_whole" + "\\" + file)
+        image2 = cv2.imread(os.getcwd()+ "\\" + input + "_whole2" + "\\" + file)
+        
+        if(i == 0):
+            height, width = image.shape[:2]
+            remove_height = int(height/4)
+            image = image[remove_height:height - int(height/8), :]
+            image2 = image2[remove_height:height - int(height/8), :]
+            cv2.imwrite(os.getcwd() + "\\" + input + "_cropped" + "\\" + "fig" + str(n+1) + ".png", image)
+            cv2.imshow("Cropped Image", image)
+            cv2.waitKey(0)
+            n += 1
+            cv2.destroyAllWindows()
+            
+
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        _, binary_image = cv2.threshold(gray_image, 175, 255, cv2.THRESH_BINARY)
+
+        # 외곽선 검출
+        contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # 흰색 사각형 영역 검출 및 자르기
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if w > 10 and h > 10:  # 흰색 사각형으로 인정할 최소 너비와 높이 설정
+                cropped_image = image2[y-5:y+h+5, x-5:x+w+5]
+                cv2.imwrite(os.getcwd() + "\\" + input + "_cropped" + "\\" + "fig" + str(n+1) + ".png", cropped_image)
+                cv2.imshow("Cropped Image", cropped_image)
+                cv2.waitKey(0)
+                n += 1
+                cv2.destroyAllWindows()
+
