@@ -177,12 +177,12 @@ def data_reconstruction(data):
     # Append the last section
     if current_section_heading is not None:
         result.append({
-            current_section_heading: {
-                "content": current_section_content,
-                "summarized": current_section_summarized,
-                "tables": current_section_tables,
-                "figures": current_section_figures
-            }
+            "title": current_section_heading,
+            "content": current_section_content,
+            "summarized": current_section_summarized,
+            "tables": current_section_tables,
+            "figures": current_section_figures
+            
         })
 
     return result
