@@ -51,10 +51,10 @@
     <div class="flex flex-row flex-wrap">
       {% for template in template_list %}
       <div class="basis-1/5 flex flex-col text-center my-5">
-        <img src="{{ template.thumbnail }}" class="object-cover w-48 rounded-lg mx-auto"/>
+        <img src="{% static 'common/image/' %}{{ template.thumbnail }}" class="object-cover w-48 rounded-lg mx-auto"/>
         <div class="flex flex-row justify-center mt-3">
           <input type="radio" id="{{ template.id }}" name="selected" value="{{ template.id }}" class="mr-2"/>
-          <label for="{{ template.id }}">{{ template.title }}</label>
+          <label for="{{ template.id }}">{{ template.name }}</label>
         </div>
       </div>
       {% endfor %}

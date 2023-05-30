@@ -47,13 +47,26 @@ def process_pdf(request, pdf_file_name):
 
 def handle_template(request, summary_json_file):
     if request.method == 'POST':
-        # create slide here
-        with open(settings.MEDIA_ROOT / summary_json_file, 'r') as file:
-            summary_text = file.read()
-            generate_slide(summary_text)
-        return redirect('paper2slide:adjust_options')
+        template_id = request.POST.get('selected')
+        name, _ = os.path.splitext(summary_json_file)
+        default_option = {
+            'title': name,
+            'username': 'username',
+            'titlefont': 'Arial',
+            'subtitlefont': 'Arial',
+            'font': 'Arial',
+            'spacing': 35,
+            'wide': True
+        }
+        generate_slide(settings.MEDIA_ROOT / summary_json_file, settings.BASE_DIR / f'static/common/potx/template{template_id}.potx', default_option)
+        
+        #with open(settings.MEDIA_ROOT / summary_json_file, 'r') as file:
+        #    summary_text = file.read()
+        #    generate_slide(summary_text, )
+        # return redirect('paper2slide:adjust_options')
+        return HttpResponse("good")
     template_list = [
-        {'id': i, 'title': f'title {i}', 'thumbnail': f'https://picsum.photos/300/200?random={i}'} for i in range(10) 
+        {'id': i, 'name': f'Template {i}', 'thumbnail': f'template{i}.png'} for i in range(1, 11) 
     ]
     form = FileUploadForm()
     return render(request, 'paper2slide/step-2.html', {'template_list': template_list, 'form': form})
