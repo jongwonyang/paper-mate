@@ -125,20 +125,6 @@ def extract_table(data):
         paths.append(path)
     return paths
 
-
-def check_match(string, find):
-    # Define the pattern to match
-    pattern = r"(?i)(" + re.escape(find) + r"\s+\d+)(?!:)"
-
-    # Find all matches in the string
-    matches = re.findall(pattern, string)
-    
-    if matches:
-        return [match.lower().replace(" ", "_") for match in matches]
-    else:
-        return None
-
-
 def split_sentences(text):
     # Tokenize the paragraph into sentences
     sentences = nltk.sent_tokenize(text)
@@ -184,3 +170,21 @@ def data_reconstruction(data):
         })
 
     return result
+
+def find_pattern_match_position(content, summarized, find):
+    pattern = r"(?i)(" + re.escape(find) + r"\s+\d+)(?!:)"
+
+    pattern_matches = re.finditer(pattern, content)
+    positions = []
+    for match in pattern_matches:
+        match_start = match.start()
+        for i in range(-1,len(summarized)-1):
+            if i == -1:
+              start_index = 0
+            else:
+              start_index = content.index(summarized[i]) + len(summarized[i])
+            end_index = content.index(summarized[i+1])
+            if start_index <= match_start < end_index:
+                positions.append((match.group(0).lower().replace(" ", "_"), i+1))
+                break
+    return positions
