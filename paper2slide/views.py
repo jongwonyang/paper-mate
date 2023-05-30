@@ -1,7 +1,9 @@
 from .pdfExtractor import extract_data
-from .summarizer import summarize_text
+from .summarizer import summarize_text, extract_keywords_from_paragraph
+from .preprocessor import convert_references_section_title, extract_table, check_match, get_cleaned_text, data_reconstruction
 
-import os, json
+import os
+import json
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
@@ -64,9 +66,7 @@ def adjust_options(request):
     return render(request, 'paper2slide/step-3.html', {'filename': filename})
 
 # TODO: Heejae
-
-
-def pdf_to_text(pdf_file):
+def pdf_to_text(pdf_file, save_path):
     """
     Divide given paper (pdf file) into sections,
     (e.g. Inroduction, Background, Evaluation ...)
@@ -96,29 +96,69 @@ def pdf_to_text(pdf_file):
         ...
     ])
     """
-    
-    paragraphs = extract_data(pdf_file)
+    extracted_data = extract_data(pdf_file)
+    paragraphs = extracted_data["paragraphs"]
+    tables = extracted_data["tables"]
 
     output = []
-
+    reference_flag = 0
     for content in paragraphs:
-        if content["role"] == "sectionHeading" or content["role"] == None:
-            if content["content"].lower().strip() == "acknowledgements":
-                break;
-            elif content["content"].upper().strip() == "ABSTRACT":
+        if reference_flag == 0:
+            if convert_references_section_title(content["content"]) == "REFERENCES":
                 output.append({"role":"sectionHeading",
-                        "content": "ABSTRACT"})
-            elif len(output)>0 and content["role"] == None and output[-1]["role"]==None:
-                if len(content["content"]) > 20:
-                    output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+                    "content": "REFERENCES"})
+                reference_flag = 1
+            elif content["role"] == "sectionHeading" or content["role"] == None:
+                if content["content"].upper().strip() == "ACKNOWLEDGEMENTS":
+                    break;
+                elif content["content"].upper().strip() == "ABSTRACT":
+                    output.append({"role":"sectionHeading",
+                            "content": "ABSTRACT"})
+                elif len(output)>0 and content["role"] == None and output[-1]["role"]==None:
+                    if len(content["content"]) > 10:
+                        output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+                else:
+                    output.append({"role":content["role"],
+                            "content":content["content"]})
+        elif reference_flag == 1:
+            if output[-1]["content"] == "REFERENCES":
+                output.append({"role":content["role"],"content":content["content"]})
+            elif content["role"] == "sectionHeading":
+                reference_flag == 0
             else:
-                output.append({"role":content["role"],
-                        "content":content["content"]})
+                output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+
+    for i in range(len(output)):
+        output[i]["content"] = get_cleaned_text(output[i]["content"])
+        # et al. 때문에 .으로 문장을 구분하는 방식에 어려움 존재 -> 먼저 제거 후 다시 삽입
 
     output = summarize_text(output)
 
+    processed_data = {}
+    processed_data["sentences"] = output
+    processed_data["tables"] = extract_table(tables)
 
-    return output
+    for i in range(len(processed_data["sentences"])):
+        processed_data["sentences"][i]["tables"] = check_match(processed_data["sentences"][i]["content"], "table")
+    for i in range(len(processed_data["sentences"])):
+        processed_data["sentences"][i]["figures"] = check_match(processed_data["sentences"][i]["content"], 'figure')
+
+    processed_data["sentences"] = data_reconstruction(processed_data)
+    
+    all_text = ""
+    for content in processed_data["sentences"]:
+        if content["content"] is not None:
+            all_text = all_text + " " + content["content"]
+    keywords = extract_keywords_from_paragraph(all_text)
+
+    processed_data["keywords"] = keywords
+
+    with open(save_path, 'w') as json_file:
+        json.dump(processed_data, json_file)
+
+    print("data saved at ", save_path)
+
+    return processed_data, save_path
 
 # TODO: Inseo
 
