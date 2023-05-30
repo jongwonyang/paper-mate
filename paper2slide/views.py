@@ -9,7 +9,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 
-from .forms import FileUploadForm
+from .forms import FileUploadForm, SlideOptionForm
 from django.conf import settings
 
 import collections
@@ -20,6 +20,9 @@ import collections.abc
 import json
 import win32com.client
 import pandas as pd
+
+import win32com.client
+import pythoncom
 
 # TODO: Jongwon
 
@@ -61,9 +64,17 @@ def apply_template(request):
 def upload_template(request):
     return HttpResponse("Upload template!")
 
-def adjust_options(request):
-    filename = "sample.pps"
-    return render(request, 'paper2slide/step-3.html', {'filename': filename})
+def adjust_options(request, pptx_file_name):
+    name, _ = os.path.splitext(pptx_file_name)
+    pythoncom.CoInitialize()
+    powerpoint = win32com.client.DispatchEx("Powerpoint.Application")
+    powerpoint.Visible = True 
+    deck = powerpoint.Presentations.Open(settings.MEDIA_ROOT / pptx_file_name)
+    deck.SaveAs(settings.MEDIA_ROOT / f'{name}.pdf', 32)
+    deck.Close()
+    powerpoint.Quit()
+    form = SlideOptionForm()
+    return render(request, 'paper2slide/step-3.html', {'pdf_file_name': f'{name}.pdf', 'form': form})
 
 # TODO: Heejae
 def pdf_to_text(pdf_file, save_path):

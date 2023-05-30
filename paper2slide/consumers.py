@@ -15,13 +15,10 @@ class PDFConsumer(WebsocketConsumer):
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
         filename = text_data_json['filename']
+        name, _ = os.path.splitext(filename)
         print("start converting...")
         start = time.time()
-        result = pdf_to_text(settings.MEDIA_ROOT / filename)
+        result, _ = pdf_to_text(settings.MEDIA_ROOT / filename, settings.MEDIA_ROOT / f'{name}.json')
         end = time.time()
-        print(result)
         print(f"time elapsed: {end - start} sec")
-        name, _ = os.path.splitext(filename)
-        with open(settings.MEDIA_ROOT / f'{name}.json', 'w') as json_file:
-            json.dump(result, json_file)
         self.send(text_data=f'{name}.json')
