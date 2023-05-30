@@ -204,12 +204,12 @@ def pdf_to_text(pdf_file, save_path):
 
 
 def generate_slide(paper_summary, template, option):
-    slide_layout = {"Title": 1,
-                "Title and Content": 2,
+    slide_layout = {"title": 1,
+                "title and Content": 2,
                 "Section Header": 3,
                 "Two Content": 4,
                 "Comparison": 5,
-                "Title Only": 6,
+                "title Only": 6,
                 "Blank": 7,
                 "Content with Caption": 8,
                 "Picture with Caption": 9}
@@ -218,7 +218,7 @@ def generate_slide(paper_summary, template, option):
 
     def just_insert_text(presentation, title, summary_seq, option):
 
-        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title and Content"])
         new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
         
         new_slide.Select()
@@ -278,7 +278,7 @@ def generate_slide(paper_summary, template, option):
 
             #입력하기
             for _, seq in enumerate(summary_seq_seq):
-                layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+                layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title and Content"])
                 new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
                 new_slide.Shapes.Item(1).TextFrame.TextRange.Text = title
                 new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
@@ -460,7 +460,7 @@ def generate_slide(paper_summary, template, option):
             print(f"summary_seq_seq[{i}]: {s}")
 
         # #임시로 하나 만들어보기
-        # layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+        # layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title and Content"])
         # new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
 
         # new_slide.Shapes.Item(1).TextFrame.TextRange.Text = option["title"]
@@ -484,7 +484,7 @@ def generate_slide(paper_summary, template, option):
                     print(f"sentences[0:len(sentences)-1]: {sentences[0:len(sentences)-1]}")
                     just_insert_text(presentation, title, sentences[0:len(sentences)-1], option)
             else:
-                layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+                layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title and Content"])
                 new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
 
                 new_slide.Shapes.Item(1).TextFrame.TextRange.Text = title
@@ -509,7 +509,7 @@ def generate_slide(paper_summary, template, option):
 
 
                 table.Table.ScaleProportionally(min(1000//table.Width, 700//table.Height))
-                table.Table.Title = sentences[1]
+                table.Table.title = sentences[1]
                 
             
                 new_slide.Shapes.AddTextbox(1, 100, 100, 100, 100)
@@ -581,6 +581,7 @@ def generate_slide(paper_summary, template, option):
         LastSentenceDoesntIncludePictureFlag = True
 
         start = 0
+        pivot = 0
         for index, pivot in enumerate(index_of_contents_sentence):
             print(f"pivot: {pivot}")
             print(f'len(summary_seq): {len(summary_seq)}')
@@ -649,7 +650,6 @@ def generate_slide(paper_summary, template, option):
     ##########################################################################################################################################
     def generate_slides(paper_summary, template, option):
         
-        
         with open(paper_summary, encoding='utf-8') as file:
             paper_summary = json.load(file)
 
@@ -658,9 +658,15 @@ def generate_slide(paper_summary, template, option):
 
         paper_summary = paper_summary["sentences"]
 
+        print(paper_summary)
+
+        # for subsection in paper_summary:
+        #     print(subsection)
+        #     print("-----------------------------------")
+
         for subsection in paper_summary:
-            for sentence in subsection["summarized"]:
-                if type(sentence) != None:
+            if subsection["summarized"] is not None:
+                for sentence in subsection["summarized"]:
                     with open("tmp.txt", "a", encoding='utf-8') as file:
                         file.write(str(sentence))
 
@@ -673,7 +679,7 @@ def generate_slide(paper_summary, template, option):
         #     presentation.ApplyTemplate(now_dir+ "\\" +template)
 
         #표지 만들기
-        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title"])
+        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title"])
         new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
 
         new_slide.Shapes.Item(1).TextFrame.TextRange.Text = option["title"]
@@ -683,7 +689,7 @@ def generate_slide(paper_summary, template, option):
 
 
         #목차 만들기
-        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Title and Content"])
+        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title and Content"])
         new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
 
         new_slide.Shapes.Item(1).TextFrame.TextRange.Text = "Contents"
@@ -696,11 +702,11 @@ def generate_slide(paper_summary, template, option):
         for index1, _ in enumerate(paper_summary):
             this_paragraph = body.Paragraphs(index1+1)
             if (numheader == Textinsertion +1):
-                this_paragraph.Text = paper_summary[index1]["Title"]
+                this_paragraph.Text = paper_summary[index1]["title"]
                 this_paragraph.Font.Name = option["font"]
                 Textinsertion = Textinsertion +1
             else:
-                this_paragraph.Text = paper_summary[index1]["Title"] + "\n"
+                this_paragraph.Text = paper_summary[index1]["title"] + "\n"
                 this_paragraph.Font.Name = option["font"]
                 Textinsertion = Textinsertion +1
             this_paragraph.ParagraphFormat.Bullet.Visible = True
@@ -709,33 +715,43 @@ def generate_slide(paper_summary, template, option):
         #본격적인 내용
         for i, summary in enumerate(paper_summary):
             
-            #서브섹션 타이틀 페이지 만들기
-            layout = layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Section Header"])
-            new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
-            new_slide.Select()
+            if summary["summarized"] is not None: 
+                #서브섹션 타이틀 페이지 만들기
+                layout = layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["Section Header"])
+                new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+                new_slide.Select()
 
-            new_slide.Shapes.Item(1).TextFrame.TextRange.Text = summary["Title"]
-            new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
-            new_slide.Shapes.Item(2).TextFrame.TextRange.Text = option["title"]
-            new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Name = option["titlefont"]
+                new_slide.Shapes.Item(1).TextFrame.TextRange.Text = summary["title"]
+                new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
+                new_slide.Shapes.Item(2).TextFrame.TextRange.Text = option["title"]
+                new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Name = option["titlefont"]
 
-            #figure와 table 개수 세기
-            n_figure = 0
-            n_table = 0
-            for n_figure, _ in enumerate(summary["figures"]):
-                pass
-            for n_table, _ in enumerate(summary["tables"]):
-                pass
-            
-            #figure와 table이 없는 경우(text만 있는 경우) slide 만들기
-            if (n_figure == 0) and (n_table == 0):
-                just_insert_text(presentation, summary["Title"], summary["summarized"], option)
-            elif (n_figure != 0) and (n_table == 0):
-                insert_text_with_picture(presentation, summary["Title"], summary["summarized"], summary["figures"],option)
-            elif (n_figure == 0) and (n_table != 0):
-                insert_text_with_table(presentation, summary["Title"], summary["summarized"], summary["tables"],option)
+                #figure와 table 개수 세기
+                # n_figure = 0
+                # n_table = 0
+                # for n_figure, _ in enumerate(summary["figures"]):
+                #     pass
+                # for n_table, _ in enumerate(summary["tables"]):
+                #     pass
+                
+                n_figure = True
+                n_table = True
+                if summary["figures"] is None:
+                    n_figure = False
+                if summary["tables"] is None:
+                    n_table = False
+
+                #figure와 table이 없는 경우(text만 있는 경우) slide 만들기
+                if (n_figure == False) and (n_table == False):
+                    just_insert_text(presentation, summary["title"], summary["summarized"], option)
+                elif (n_figure != False) and (n_table == False):
+                    insert_text_with_picture(presentation, summary["title"], summary["summarized"], summary["figures"],option)
+                elif (n_figure == False) and (n_table != False):
+                    insert_text_with_table(presentation, summary["title"], summary["summarized"], summary["tables"],option)
+                else:
+                    insert_text_with_both(presentation, summary["title"], summary["summarized"], summary["figures"], summary["tables"],option)
             else:
-                insert_text_with_both(presentation, summary["Title"], summary["summarized"], summary["figures"], summary["tables"],option)
+                pass
 
     #######################################################################################################################################
         #QnA 페이지 만들기
@@ -758,20 +774,21 @@ def generate_slide(paper_summary, template, option):
         s.Align(4, True)
 
         if(option["wide"] == True):
-            slide_master = presentation.SlideMaster
-            layout = None
-            for custom_layout in slide_master.CustomLayouts:
-                if custom_layout.Width == 1280 and custom_layout.Height == 720:
-                    layout = custom_layout
-                    break
-            if layout is not None:
-                for slide in presentation.Slides:
-                    slide.Layout = layout
+                slide_master = presentation.SlideMaster
+                layout = None
+                for custom_layout in slide_master.CustomLayouts:
+                    if custom_layout.Width == 1280 and custom_layout.Height == 720:
+                        layout = custom_layout
+                        break
+                if layout is not None:
+                    for slide in presentation.Slides:
+                        slide.Layout = layout
 
         if(template != "basic"):
             presentation.ApplyTemplate(now_dir+ "\\" +template)
 
         
+
         presentation.SaveAs(save_name)
         presentation.Close()
         PPTApp.Quit()
