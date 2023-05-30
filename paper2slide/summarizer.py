@@ -1,6 +1,6 @@
 from transformers import *
 from summarizer import Summarizer
-from .preprocessor import get_cleaned_text, replace_et_al, split_sentences
+from .preprocessor import replace_et_al, split_sentences
 from keybert import KeyBERT
 
 def summarize_text(output):
