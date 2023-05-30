@@ -618,10 +618,13 @@ def generate_slide(paper_summary, template, option):
         # with open(option, encoding='utf-8') as file:
         #     option = json.load(file)
 
-        for i in paper_summary:
-            for sentence in i["summarized"]:
-                with open("tmp.txt", "a") as file:
-                    file.write(sentence)
+        paper_summary = paper_summary["sentences"]
+
+        for subsection in paper_summary:
+            for sentence in subsection["summarized"]:
+                if type(sentence) != None:
+                    with open("tmp.txt", "a", encoding='utf-8') as file:
+                        file.write(str(sentence))
 
         save_name = now_dir + "\\" +str(option["title"]) + ".pptx"
 
