@@ -22,6 +22,9 @@ def summarize_text(output):
                 summarized_list[j] = replace_et_al(summarized_list[j])
             output[i]["summarized"] = summarized_list
     
+    for content in output:
+        content["content"] = replace_et_al(content["content"])
+
     return output
 
 def extract_keywords_from_paragraph(paragraph):
