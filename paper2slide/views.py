@@ -1,6 +1,6 @@
 from .pdfExtractor import extract_data
 from .summarizer import summarize_text, extract_keywords_from_paragraph
-from .preprocessor import convert_references_section_title, extract_table, check_match, get_cleaned_text, data_reconstruction
+from .preprocessor import convert_references_section_title, extract_table, find_pattern_match_position, get_cleaned_text, data_reconstruction
 
 import os
 import json
@@ -149,13 +149,27 @@ def pdf_to_text(pdf_file, save_path):
     processed_data["sentences"] = output
     processed_data["tables"] = extract_table(tables)
 
-    for i in range(len(processed_data["sentences"])):
-        processed_data["sentences"][i]["tables"] = check_match(processed_data["sentences"][i]["content"], "table")
-    for i in range(len(processed_data["sentences"])):
-        processed_data["sentences"][i]["figures"] = check_match(processed_data["sentences"][i]["content"], 'figure')
 
     processed_data["sentences"] = data_reconstruction(processed_data)
     
+    for i in range(len(processed_data["sentences"])):
+        if 'summarized' in processed_data["sentences"][i]:
+            if processed_data["sentences"][i]["content"] is not None:
+                processed_data["sentences"][i]["tables"] = find_pattern_match_position(processed_data["sentences"][i]["content"],processed_data["sentences"][i]["summarized"], "table")
+            else: 
+                processed_data["sentences"][i]["tables"] = None
+        else:
+            processed_data["sentences"][i]["tables"] = None
+    for i in range(len(processed_data["sentences"])):
+        if 'summarized' in processed_data["sentences"][i]:
+            if processed_data["sentences"][i]["content"] is not None:
+                processed_data["sentences"][i]["figures"] = find_pattern_match_position(processed_data["sentences"][i]["content"],processed_data["sentences"][i]["summarized"], 'figure')
+            else: 
+                processed_data["sentences"][i]["figures"] = None
+        else:
+            processed_data["sentences"][i]["figures"] = None
+
+
     all_text = ""
     for content in processed_data["sentences"]:
         if content["content"] is not None:
