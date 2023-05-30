@@ -120,12 +120,12 @@ def pdf_to_text(pdf_file, save_path):
     processed_data["tables"] = extract_table(tables)
 
     for i in range(len(processed_data["sentences"])):
-        if 'summarized' in processed_data:
+        if 'summarized' in processed_data["sentences"][i]:
             processed_data["sentences"][i]["tables"] = find_pattern_match_position(processed_data["sentences"][i]["content"],processed_data["sentences"][i]["summarized"], "table")
         else:
             processed_data["sentences"][i]["tables"] = None
     for i in range(len(processed_data["sentences"])):
-        if 'summarized' in processed_data:
+        if 'summarized' in processed_data["sentences"][i]:
             processed_data["sentences"][i]["figures"] = find_pattern_match_position(processed_data["sentences"][i]["content"],processed_data["sentences"][i]["summarized"], 'figure')
         else:
             processed_data["sentences"][i]["figures"] = None
