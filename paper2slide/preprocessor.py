@@ -143,8 +143,8 @@ def data_reconstruction(data):
                     "title" : previous_section_heading,
                     "content": current_section_content,
                     "summarized": current_section_summarized,
-                    "tables": current_section_tables,
-                    "figures": current_section_figures
+                    # "tables": current_section_tables,
+                    # "figures": current_section_figures
                 })
 
             previous_section_heading = sentence["content"]
@@ -156,8 +156,8 @@ def data_reconstruction(data):
         elif sentence["role"] is None and current_section_heading is not None:
             current_section_content = sentence["content"]
             current_section_summarized = sentence["summarized"]
-            current_section_tables = sentence["tables"]
-            current_section_figures = sentence["figures"]
+            # current_section_tables = sentence["tables"]
+            # current_section_figures = sentence["figures"]
 
     # Append the last section
     if current_section_heading is not None:
@@ -165,8 +165,8 @@ def data_reconstruction(data):
             "title": current_section_heading,
             "content": current_section_content,
             "summarized": current_section_summarized,
-            "tables": current_section_tables,
-            "figures": current_section_figures
+            # "tables": current_section_tables,
+            # "figures": current_section_figures
         })
 
     return result

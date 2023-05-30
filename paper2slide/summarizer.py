@@ -33,4 +33,3 @@ def extract_keywords_from_paragraph(paragraph):
 
     # Return the extracted keywords
     return keywords
-
