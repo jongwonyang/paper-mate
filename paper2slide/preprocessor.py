@@ -182,8 +182,8 @@ def find_pattern_match_position(content, summarized, find):
             if i == -1:
               start_index = 0
             else:
-              start_index = content.index(summarized[i]) + len(summarized[i])
-            end_index = content.index(summarized[i+1])
+              start_index = content.index(summarized[i][4:-4]) + len(summarized[i][4:-4])
+            end_index = content.index(summarized[i+1][4:-4])
             if start_index <= match_start < end_index:
                 positions.append((match.group(0).lower().replace(" ", "_"), i+1))
                 break
