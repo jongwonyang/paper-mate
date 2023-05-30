@@ -20,12 +20,7 @@ from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-<<<<<<< HEAD
     path('', include('main.urls')),
-    path('p2s/', include('paper2slide.urls')), 
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-=======
     path('p2s/', include('paper2slide.urls')),
     path('makeQuestion/', include('PrepareQnA.urls')),
-]
->>>>>>> new_gen_slide
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
