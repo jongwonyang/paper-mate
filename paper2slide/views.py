@@ -23,7 +23,6 @@ import os
 import fitz
 import cv2
 
-import win32com.client
 import pythoncom
 
 # TODO: Jongwon
@@ -787,13 +786,13 @@ def generate_slide(paper_summary, template, option):
         if(template != "basic"):
             presentation.ApplyTemplate(now_dir+ "\\" +template)
 
-        
-
         presentation.SaveAs(save_name)
         presentation.Close()
         PPTApp.Quit()
 
+    pythoncom.CoInitialize()
     generate_slides(paper_summary, template , option)
+    pythoncom.CoUninitialize()
 
 def extract_image(paper):
     now_dir = os.getcwd()
