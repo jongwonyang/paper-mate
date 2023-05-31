@@ -321,6 +321,7 @@ def generate_slide(paper_summary, template, option):
         summary_seq_seq = []
         LastSentenceDoesntIncludePictureFlag = True
         start = 0
+        pivot = 0
         for index, pivot in enumerate(index_of_picture_sentence):
             print(f"pivot: {pivot}")
             
@@ -410,6 +411,7 @@ def generate_slide(paper_summary, template, option):
         summary_seq_seq = []
         LastSentenceDoesntIncludeTableFlag = True
         start = 0
+        pivot = 0
         for index, pivot in enumerate(index_of_table_sentence):
             print(f"pivot: {pivot}")
             print(f'len(summary_seq): {len(summary_seq)}')
