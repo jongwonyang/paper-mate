@@ -57,6 +57,9 @@ def handle_template(request, summary_json_file):
             'spacing': 35,
             'wide': True
         }
+        paper_summary = settings.MEDIA_ROOT / summary_json_file
+        template = settings.BASE_DIR / f'static/common/potx/template{template_id}.potx'
+        print(f'generate_slide({paper_summary}, {template}, {default_option})')
         generate_slide(settings.MEDIA_ROOT / summary_json_file, settings.BASE_DIR / f'static/common/potx/template{template_id}.potx', default_option)
         
         #with open(settings.MEDIA_ROOT / summary_json_file, 'r') as file:
