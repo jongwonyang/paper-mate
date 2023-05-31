@@ -309,6 +309,14 @@ def generate_slide(paper_summary, template, option):
 
     def insert_text_with_picture(presentation, title, summary_seq, picture_seq, option):
         
+        if type(picture_seq[0]) == list:
+            temp = []
+            for pic_set in picture_seq:
+                temp.append(pic_set[0])
+                temp.append(pic_set[1])
+            picture_seq = temp
+
+
         index_of_picture_sentence = []
         picture_list =[]
         for i, val in enumerate(picture_seq):
@@ -399,6 +407,14 @@ def generate_slide(paper_summary, template, option):
 
 
     def insert_text_with_table(presentation, title, summary_seq, table_seq, option):
+
+        if type(table_seq[0]) == list:
+            temp = []
+            for table_set in table_seq:
+                temp.append(table_set[0])
+                temp.append(table_set[1])
+            table_seq = temp
+
         index_of_table_sentence = []
         table_list =[]
         for i, val in enumerate(table_seq):
@@ -544,6 +560,22 @@ def generate_slide(paper_summary, template, option):
 
     
     def insert_text_with_both(presentation, title, summary_seq, figure_seq, table_seq, option):
+        
+        
+        if type(figure_seq[0]) == list:
+            temp = []
+            for pic_set in figure_seq:
+                temp.append(pic_set[0])
+                temp.append(pic_set[1])
+            figure_seq = temp
+
+        if type(table_seq[0]) == list:
+            temp = []
+            for table_set in table_seq:
+                temp.append(table_set[0])
+                temp.append(table_set[1])
+            table_seq = temp
+        
         index_of_contents_sentence = []
         index_of_table_sentence = []
         index_of_picture_sentence = []
@@ -639,12 +671,14 @@ def generate_slide(paper_summary, template, option):
                 pass
             elif sentences[-1] == None:
                 just_insert_text(presentation, title, sentences[0: len(sentences) -1], option)
-            elif sentences[-1].split(".")[1] == "png":
+            #elif sentences[-1].split(".")[1] == "png":
+            elif sentences[-1].lower().startswith('fig'):
                 tmp = []
                 tmp.append(sentences[-1])
                 tmp.append(0)
                 insert_text_with_picture(presentation, title, sentences[0:1], tmp, option)
-            elif sentences[-1].split(".")[1] == "xlsx":
+            #elif sentences[-1].split(".")[1] == "xlsx":
+            elif sentences[-1].lower().startswith('table'):
                 tmp = []
                 tmp.append(sentences[-1])
                 tmp.append(0)
@@ -738,19 +772,21 @@ def generate_slide(paper_summary, template, option):
                 # for n_table, _ in enumerate(summary["tables"]):
                 #     pass
                 
-                n_figure = True
-                n_table = True
-                if summary["figures"] is None:
-                    n_figure = False
-                if summary["tables"] is None:
-                    n_table = False
+                # n_figure = True
+                # n_table = True
+                # if summary["figures"] is None:
+                #     n_figure = False
+                # if summary["tables"] is None:
+                #     n_table = False
+                len_figure = len(summary["figures"])
+                len_table = len(summary["tables"])
 
                 #figure와 table이 없는 경우(text만 있는 경우) slide 만들기
-                if (n_figure == False) and (n_table == False):
+                if (len_figure == 0) and (len_table == 0):
                     just_insert_text(presentation, summary["title"], summary["summarized"], option)
-                elif (n_figure != False) and (n_table == False):
+                elif (len_figure != 0) and (len_table == 0):
                     insert_text_with_picture(presentation, summary["title"], summary["summarized"], summary["figures"],option)
-                elif (n_figure == False) and (n_table != False):
+                elif (len_figure == 0) and (len_table != 0):
                     insert_text_with_table(presentation, summary["title"], summary["summarized"], summary["tables"],option)
                 else:
                     insert_text_with_both(presentation, summary["title"], summary["summarized"], summary["figures"], summary["tables"],option)
