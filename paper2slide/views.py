@@ -176,17 +176,17 @@ def pdf_to_text(pdf_file, save_path):
             if processed_data["sentences"][i]["content"] is not None:
                 processed_data["sentences"][i]["tables"] = find_pattern_match_position(processed_data["sentences"][i]["content"],processed_data["sentences"][i]["summarized"], "table")
             else: 
-                processed_data["sentences"][i]["tables"] = None
+                processed_data["sentences"][i]["tables"] = []
         else:
-            processed_data["sentences"][i]["tables"] = None
+            processed_data["sentences"][i]["tables"] = []
     for i in range(len(processed_data["sentences"])):
         if 'summarized' in processed_data["sentences"][i]:
             if processed_data["sentences"][i]["content"] is not None:
                 processed_data["sentences"][i]["figures"] = find_pattern_match_position(processed_data["sentences"][i]["content"],processed_data["sentences"][i]["summarized"], 'figure')
             else: 
-                processed_data["sentences"][i]["figures"] = None
+                processed_data["sentences"][i]["figures"] = []
         else:
-            processed_data["sentences"][i]["figures"] = None
+            processed_data["sentences"][i]["figures"] = []
 
 
     all_text = ""
