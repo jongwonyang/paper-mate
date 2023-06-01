@@ -218,8 +218,15 @@ def generate_slide(paper_summary, template, option):
                 "Content with Caption": 8,
                 "Picture with Caption": 9}
 
-    now_dir = os.path.dirname(os.path.abspath(__file__))
 
+    current_dir = os.getcwd()
+    now_dir = current_dir
+   # parent_dir = os.path.dirname(current_dir)
+    uploads_dir = os.path.join(current_dir, "uploads")
+    table_dir = os.path.dirname(uploads_dir)
+    picture_dir = os.path.join(uploads_dir, option["title"]+"_cropped")
+
+    
     def just_insert_text(presentation, title, summary_seq, option):
 
         layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title and Content"])
@@ -398,7 +405,11 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(1).TextFrame.TextRange.Text = title
                 new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
                 
-                new_slide.Shapes.Item(2).Fill.UserPicture(now_dir + "\\" + sentences[1])
+                print("-------------------------------------------------------------------")
+                print(f"picture_dir: {picture_dir}")
+                print("-------------------------------------------------------------------")
+                
+                new_slide.Shapes.Item(2).Fill.UserPicture(picture_dir + "\\" + sentences[1] + ".png")
                 
                 new_slide.Shapes.Item(3).TextFrame.TextRange.Text = sentences[0]
                 new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Bullet.Visible = False
@@ -512,26 +523,50 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(1).TextFrame.TextRange.Text = title
                 new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
                 
+                # pythoncom.CoInitialize()
                 excel = win32com.client.gencache.EnsureDispatch('Excel.Application')
-                workbook = excel.Workbooks.Open(now_dir + "\\" + sentences[-1])
-                worksheet = workbook.Worksheets('Sheet')
+                workbook = excel.Workbooks.Open(table_dir + "\\" + sentences[-1] + ".xlsx")
+                print("--------------------------------------------------------------------------")
+                print(table_dir + "\\" + sentences[-1] + ".xlsx")
+                print("--------------------------------------------------------------------------")
+                worksheet = workbook.ActiveSheet
+                # table = worksheet.ListObjects(1)
+                # table_range = table.Range()
+                # table_data = table_range.Value
                 base_cell = worksheet.Range("A1")
                 table_range = base_cell.CurrentRegion
                 table_range.Copy()
-
-
-                table_shape_range = new_slide.Shapes.PasteSpecial()
+                table_range = new_slide.Shapes.PasteSpecial()
                 excel.Quit()
+                # pythoncom.CoUninitialize()
 
-                for shape in new_slide.Shapes:
+
+
+                
+                
+            
+                # table = new_slide.Shapes.Item(2).Table
+                # print("--------------------------------------------------------------------------")
+                # print(type(table))
+                # print("--------------------------------------------------------------------------")
+                n = 0
+                for  i , shape in enumerate(new_slide.Shapes):
+                    print(f"i: {i} // shape: {shape} // HasTable: {shape.HasTable}")
                     if shape.HasTable:
                         table = shape
+                        print("--------------------------------------------------------------------------")
                         print("TABLE!!!!")
+                        print("--------------------------------------------------------------------------")
+                        n = i+1
                         break
 
-
-                table.Table.ScaleProportionally(min(1000//table.Width, 700//table.Height))
-                table.Table.title = sentences[1]
+                # table = new_slide.Shapes.Item(n)
+                # table.Table.ScaleProportionally(min(1000//table.Width, 700//table.Height))
+                # table.Table.title = sentences[1]
+                scale = min(1000//table_range.Width, 700//table_range.Height)
+                table_range.ScaleWidth(scale, 0)
+                table_range.ScaleHeight(scale, 0)
+                # table_range.Item().Table.title = sentences[1]
                 
             
                 new_slide.Shapes.AddTextbox(1, 100, 100, 100, 100)
@@ -543,10 +578,10 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(3).TextFrame.WordWrap = False
 
                 #new_slide.Shapes.Item(3).Top = table_shape_range.Top - new_slide.Shapes.Item(3).Height
-                new_slide.Shapes.Item(3).Top = (table.Top + table.Height+ new_slide.Shapes.Item(3).Height)
-                new_slide.Shapes.Item(3).Left = table.Left
+                new_slide.Shapes.Item(3).Top = (table_range.Top + table_range.Height+ new_slide.Shapes.Item(3).Height)
+                new_slide.Shapes.Item(3).Left = table_range.Left
 
-                table.Name = "a"
+                # table.Name = "a"
                 new_slide.Shapes.Item(3).Name = "b"
 
                 #table.Left = (new_slide.Master.Width / 2) - (table.Width / 2)
@@ -554,9 +589,9 @@ def generate_slide(paper_summary, template, option):
                 # table_shape_range.Align(1, True)    #https://learn.microsoft.com/en-us/office/vba/api/office.msoaligncmd
                 #new_slide.Shapes.Range(["a","b"]).Align(1, True)
 
-                for row in table.Table.Rows:
-                    for cell in row.Cells:
-                        cell.Shape.TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
+                # for row in table.Table.Rows:
+                #     for cell in row.Cells:
+                #         cell.Shape.TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
                         
                 # group.Align(4, True)
 
@@ -827,7 +862,7 @@ def generate_slide(paper_summary, template, option):
                         slide.Layout = layout
 
         if(template != "basic"):
-            presentation.ApplyTemplate(now_dir+ "\\" +template)
+            presentation.ApplyTemplate(os.path.join(current_dir, "static", "common", "potx", template))
 
         presentation.SaveAs(save_name)
         presentation.Close()
@@ -838,38 +873,42 @@ def generate_slide(paper_summary, template, option):
     pythoncom.CoUninitialize()
 
 def extract_image(paper):
-    now_dir = os.getcwd()
-    input = paper
-    name = input.split(".")[0]
 
-    doc = fitz.open(now_dir + "\\" + input)
+    ######################################################
+    ##### 1. 각 페이지를 이미지로 변환하기
+    ######################################################
 
-    if not os.path.exists(now_dir + "\\" + name):
-        os.makedirs(now_dir + "\\" + name + "_whole")
+    current_dir = os.getcwd()
+    uploads_dir = os.path.join(current_dir, "uploads")
 
-    if not os.path.exists(now_dir + "\\" + name):
-        os.makedirs(now_dir + "\\" + name + "_whole2")
+    name = paper.split(".")[0]
+
+    doc = fitz.open(uploads_dir + "\\" + paper)
+
+    wholepage_dir = os.path.join(uploads_dir, name+"_whole")
+
+    if not os.path.exists(wholepage_dir):
+        os.makedirs(wholepage_dir)
 
     for i, page in enumerate(doc):
         pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72), dpi=None,
                             colorspace=fitz.csRGB, clip=True, alpha=True, annots=True)
-        pix.save(f"{name}_whole\\samplepdfimage-%i.png" % page.number)  # save file
+        pix.save(wholepage_dir + f"\\samplepdfimage-%i.png" % page.number)  # save file
 
-    for i, page in enumerate(doc):
-        pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72), dpi=None,
-                            colorspace=fitz.csRGB, clip=False, alpha=True, annots=False)
-        pix.save(f"{name}_whole2\\samplepdfimage-%i.png" % page.number)
+
+    ######################################################
+    ##### 2. 각 페이지에서 이미지 crop 하기
+    ######################################################
 
     input = name
 
-    source_folder_path = os.getcwd() + "\\" + input + "_whole"
-    source_folder_path2 = os.getcwd() + "\\" + input + "_whole2"
-
+    source_folder_path = wholepage_dir
     file_list = os.listdir(source_folder_path)
-    file_list2 = os.listdir(source_folder_path2)
 
-    if not os.path.exists(os.getcwd() + "\\" + input + "_cropped"):
-        os.makedirs(os.getcwd() + "\\" + input + "_cropped")
+    cropped_dir = os.path.join(uploads_dir, name+"_cropped")
+
+    if not os.path.exists(cropped_dir):
+        os.makedirs(cropped_dir)
 
     n = 0
 
@@ -878,24 +917,17 @@ def extract_image(paper):
         with open(source_folder_path+ "\\" +file, 'rb') as image_file:
             image_data = image_file.read()
 
-        image = cv2.imread(os.getcwd()+ "\\" + input + "_whole" + "\\" + file)
-        image2 = cv2.imread(os.getcwd()+ "\\" + input + "_whole2" + "\\" + file)
+        image = cv2.imread(wholepage_dir + "\\" + file)
         
         if(i == 0):
             height, width = image.shape[:2]
             remove_height = int(height/4)
             image = image[remove_height:height - int(height/8), :]
-            image2 = image2[remove_height:height - int(height/8), :]
-            cv2.imwrite(os.getcwd() + "\\" + input + "_cropped" + "\\" + "fig" + str(n+1) + ".png", image)
-            cv2.imshow("Cropped Image", image)
-            cv2.waitKey(0)
-            n += 1
-            cv2.destroyAllWindows()
-            
+
 
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        _, binary_image = cv2.threshold(gray_image, 175, 255, cv2.THRESH_BINARY)
+        _, binary_image = cv2.threshold(gray_image, 150, 255, cv2.THRESH_BINARY)
 
         # 외곽선 검출
         contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -903,11 +935,9 @@ def extract_image(paper):
         # 흰색 사각형 영역 검출 및 자르기
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
-            if w > 10 and h > 10:  # 흰색 사각형으로 인정할 최소 너비와 높이 설정
-                cropped_image = image2[y-5:y+h+5, x-5:x+w+5]
-                cv2.imwrite(os.getcwd() + "\\" + input + "_cropped" + "\\" + "fig" + str(n+1) + ".png", cropped_image)
-                cv2.imshow("Cropped Image", cropped_image)
-                cv2.waitKey(0)
+            if w > width//3 and h > 10:  # 흰색 사각형으로 인정할 최소 너비와 높이 설정
+                cropped_image = image[y-5:y+h+5, x-5:x+w+5]
+                cv2.imwrite(cropped_dir + "\\" + "fig" + str(n+1) + ".png", cropped_image)
                 n += 1
-                cv2.destroyAllWindows()
+                
 
