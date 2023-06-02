@@ -770,7 +770,7 @@ def generate_slide(paper_summary, template, option):
         subtitles = []
 
         for sub in paper_summary:
-            subtitles.append(paper_summary["title"])
+            subtitles.append(sub["title"])
 
         just_insert_text(presentation, "Contents", subtitles, option)
 
