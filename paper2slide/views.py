@@ -764,28 +764,36 @@ def generate_slide(paper_summary, template, option):
         new_slide.Shapes.Item(2).TextFrame.TextRange.Font.Name = option["titlefont"]
 
 
-        #목차 만들기
-        layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title and Content"])
-        new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+        # #목차 만들기
 
-        new_slide.Shapes.Item(1).TextFrame.TextRange.Text = "Contents"
-        new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["titlefont"]
-        body = new_slide.Shapes.Item(2).TextFrame.TextRange
-        Textinsertion = 0
-        for numheader, _  in enumerate(paper_summary):
-            numheader = numheader+1
+        subtitles = []
 
-        for index1, _ in enumerate(paper_summary):
-            this_paragraph = body.Paragraphs(index1+1)
-            if (numheader == Textinsertion +1):
-                this_paragraph.Text = paper_summary[index1]["title"]
-                this_paragraph.Font.Name = option["font"]
-                Textinsertion = Textinsertion +1
-            else:
-                this_paragraph.Text = paper_summary[index1]["title"] + "\n"
-                this_paragraph.Font.Name = option["font"]
-                Textinsertion = Textinsertion +1
-            this_paragraph.ParagraphFormat.Bullet.Visible = True
+        for sub in paper_summary:
+            subtitles.append(paper_summary["title"])
+
+        just_insert_text(presentation, "Contents", subtitles, option)
+
+        # layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(slide_layout["title and Content"])
+        # new_slide = presentation.Slides.AddSlide(presentation.Slides.Count+1, layout)
+
+        # new_slide.Shapes.Item(1).TextFrame.TextRange.Text = "Contents"
+        # new_slide.Shapes.Item(1).TextFrame.TextRange.Font.Name = option["titlefont"]
+        # body = new_slide.Shapes.Item(2).TextFrame.TextRange
+        # Textinsertion = 0
+        # for numheader, _  in enumerate(paper_summary):
+        #     numheader = numheader+1
+
+        # for index1, _ in enumerate(paper_summary):
+        #     this_paragraph = body.Paragraphs(index1+1)
+        #     if (numheader == Textinsertion +1):
+        #         this_paragraph.Text = paper_summary[index1]["title"]
+        #         this_paragraph.Font.Name = option["font"]
+        #         Textinsertion = Textinsertion +1
+        #     else:
+        #         this_paragraph.Text = paper_summary[index1]["title"] + "\n"
+        #         this_paragraph.Font.Name = option["font"]
+        #         Textinsertion = Textinsertion +1
+        #     this_paragraph.ParagraphFormat.Bullet.Visible = True
 
     #######################################################################################################################################
         #본격적인 내용
@@ -862,8 +870,11 @@ def generate_slide(paper_summary, template, option):
                     for slide in presentation.Slides:
                         slide.Layout = layout
 
-        if(template != "basic"):
+        if(template != "basic") and option["usertemplate"] == False:
             presentation.ApplyTemplate(os.path.join(current_dir, "static", "common", "potx", template))
+
+        if(template != "basic") and option["usertemplate"] == True:
+            presentation.ApplyTemplate(os.path.join(uploads_dir, template))
 
         presentation.SaveAs(save_name)
         presentation.Close()
