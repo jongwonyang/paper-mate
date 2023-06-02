@@ -55,7 +55,8 @@ def handle_template(request, summary_json_file):
             'subtitlefont': 'Arial',
             'font': 'Arial',
             'spacing': 35,
-            'wide': True
+            'wide': True,
+            'usertemplate': False
         }
         paper_summary = settings.MEDIA_ROOT / summary_json_file
         template = settings.BASE_DIR / f'static/common/potx/template{template_id}.potx'
@@ -84,6 +85,7 @@ def upload_template(request):
     return HttpResponse("Upload template!")
 
 def adjust_options(request, pptx_file_name):
+    form = SlideOptionForm()
     name, _ = os.path.splitext(pptx_file_name)
     pythoncom.CoInitialize()
     powerpoint = win32com.client.DispatchEx("Powerpoint.Application")
@@ -92,7 +94,6 @@ def adjust_options(request, pptx_file_name):
     deck.SaveAs(settings.MEDIA_ROOT / f'{name}.pdf', 32)
     deck.Close()
     powerpoint.Quit()
-    form = SlideOptionForm()
     return render(request, 'paper2slide/step-3.html', {'pdf_file_name': f'{name}.pdf', 'form': form})
 
 # TODO: Heejae
