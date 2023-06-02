@@ -86,6 +86,20 @@ def upload_template(request):
 
 def adjust_options(request, pptx_file_name):
     form = SlideOptionForm()
+    if request.method == 'POST':
+        form = SlideOptionForm(request.POST)
+        if form.is_valid():
+            option = {
+                'title': form.cleaned_data['title'],
+                'username': form.cleaned_data['username'],
+                'titlefont': form.cleaned_data['titlefont'],
+                'subtitlefont': form.cleaned_data['subtitlefont'],
+                'spacing': form.cleaned_data['spacing'],
+                'wide': form.cleaned_data['wide'],
+                'usertemplate': False # TODO
+            }
+            print(option)
+            # TODO: re-generate slide here
     name, _ = os.path.splitext(pptx_file_name)
     pythoncom.CoInitialize()
     powerpoint = win32com.client.DispatchEx("Powerpoint.Application")

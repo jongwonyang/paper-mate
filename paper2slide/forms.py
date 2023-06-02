@@ -4,15 +4,15 @@ class FileUploadForm(forms.Form):
     file = forms.FileField()
 
 FONT_CHOICES = (
-    ('1', 'Arial'),
-    ('2', 'Bahnschrift'),
-    ('3', 'Calibri'),
-    ('4', 'Courier New'),
-    ('5', 'Euphemia'),
+    ('Arial', 'Arial'),
+    ('Bahnschrift', 'Bahnschrift'),
+    ('Calibri', 'Calibri'),
+    ('Courier New', 'Courier New'),
+    ('Euphemia', 'Euphemia'),
 )
 RATIO_CHOICES = (
-    ('1', '4:3'),
-    ('2', '16:9')
+    (False, '4:3'),
+    (True, '16:9')
 )
 class SlideOptionForm(forms.Form):
     title = forms.CharField(label='제목', max_length=100)
