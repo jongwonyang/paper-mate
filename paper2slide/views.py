@@ -409,7 +409,8 @@ def generate_slide(paper_summary, template, option):
                 print(f"picture_dir: {picture_dir}")
                 print("-------------------------------------------------------------------")
                 
-                new_slide.Shapes.Item(2).Fill.UserPicture(picture_dir + "\\" + sentences[1] + ".png")
+                
+                new_slide.Shapes.Item(2).Fill.UserPicture(os.path.join(picture_dir, f"{sentences[1]}.png"))
                 
                 new_slide.Shapes.Item(3).TextFrame.TextRange.Text = sentences[0]
                 new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Bullet.Visible = False
@@ -927,7 +928,7 @@ def extract_image(paper):
 
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        _, binary_image = cv2.threshold(gray_image, 150, 255, cv2.THRESH_BINARY)
+        _, binary_image = cv2.threshold(gray_image, 100, 255, cv2.THRESH_BINARY)
 
         # 외곽선 검출
         contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -935,9 +936,9 @@ def extract_image(paper):
         # 흰색 사각형 영역 검출 및 자르기
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
-            if w > width//3 and h > 10:  # 흰색 사각형으로 인정할 최소 너비와 높이 설정
+            if w > width//6 and h > 10:  # 흰색 사각형으로 인정할 최소 너비와 높이 설정
                 cropped_image = image[y-5:y+h+5, x-5:x+w+5]
-                cv2.imwrite(cropped_dir + "\\" + "fig" + str(n+1) + ".png", cropped_image)
+                cv2.imwrite(cropped_dir + "\\" + "figure_" + str(n+1) + ".png", cropped_image)
                 n += 1
                 
 
