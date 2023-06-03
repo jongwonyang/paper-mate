@@ -788,7 +788,7 @@ def generate_slide(paper_summary, template, option):
                     with open("tmp.txt", "a", encoding='utf-8') as file:
                         file.write(str(sentence))
 
-        save_name = now_dir + "\\" + str(option["title"]) + ".pptx"
+        save_name = str(option["title"]) + ".pptx"
 
         PPTApp = win32com.client.gencache.EnsureDispatch(
             "PowerPoint.Application")
@@ -939,7 +939,7 @@ def generate_slide(paper_summary, template, option):
         if (template != "basic") and option["usertemplate"] == True:
             presentation.ApplyTemplate(os.path.join(uploads_dir, template))
 
-        presentation.SaveAs(save_name)
+        presentation.SaveAs(os.path.join(uploads_dir, save_name))
         presentation.Close()
         PPTApp.Quit()
 
