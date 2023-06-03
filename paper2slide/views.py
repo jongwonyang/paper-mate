@@ -146,8 +146,10 @@ def pdf_to_text(pdf_file, save_path):
                     if len(content["content"]) > 10:
                         output[-1]["content"] = output[-1]["content"]+" "+content["content"]
                 else:
-                    output.append({"role":content["role"],
-                            "content":content["content"]})
+                    if not content["content"][0].isdigit():
+                        output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+
+                    else: output.append({"role":content["role"], "content":content["content"]})
         elif reference_flag == 1:
             if output[-1]["content"] == "REFERENCES":
                 output.append({"role":content["role"],"content":content["content"]})
