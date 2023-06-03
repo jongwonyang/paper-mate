@@ -17,8 +17,8 @@ RATIO_CHOICES = (
 class SlideOptionForm(forms.Form):
     title = forms.CharField(label='제목', max_length=100)
     username = forms.CharField(label='사용자명', max_length=100)
-    title_font = forms.ChoiceField(label='제목 폰트', choices=FONT_CHOICES)
-    subtitle_font = forms.ChoiceField(label='부제목 폰트', choices=FONT_CHOICES)
-    body_font = forms.ChoiceField(label='본문 폰트', choices=FONT_CHOICES)
+    titlefont = forms.ChoiceField(label='제목 폰트', choices=FONT_CHOICES)
+    subtitlefont = forms.ChoiceField(label='부제목 폰트', choices=FONT_CHOICES)
+    font = forms.ChoiceField(label='본문 폰트', choices=FONT_CHOICES)
     spacing = forms.IntegerField(label='자간', max_value=100)
-    ratio = forms.ChoiceField(label='화면 비율', choices=RATIO_CHOICES)
+    wide = forms.ChoiceField(label='화면 비율', choices=RATIO_CHOICES)

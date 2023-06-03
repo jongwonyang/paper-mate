@@ -48,9 +48,22 @@ def process_pdf(request, pdf_file_name):
 
 def handle_template(request, summary_json_file):
     if request.method == 'POST':
-        template_id = request.POST.get('selected')
+        if request.POST.get('selected'):
+            template_id = request.POST.get('selected')
+            template = settings.BASE_DIR / \
+                f'static/common/potx/template{template_id}.potx'
+            usertemplate = False
+        else:
+            form = FileUploadForm(request.POST, request.FILES)
+            if form.is_valid():
+                file = request.FILES['file']
+                fs = FileSystemStorage()
+                potx_file = fs.save(file.name, file)
+                template = settings.MEDIA_ROOT / potx_file 
+            usertemplate = True
+
         name, _ = os.path.splitext(summary_json_file)
-        default_option = {
+        option = {
             'title': name,
             'username': 'username',
             'titlefont': 'Arial',
@@ -58,22 +71,19 @@ def handle_template(request, summary_json_file):
             'font': 'Arial',
             'spacing': 35,
             'wide': True,
-            'usertemplate': False
+            'usertemplate': usertemplate,
+            'template': str(template)
         }
+        with open(settings.MEDIA_ROOT / f'{name}_option.json', 'w') as option_file:
+            json.dump(option, option_file)
         paper_summary = settings.MEDIA_ROOT / summary_json_file
-        template = settings.BASE_DIR / \
-            f'static/common/potx/template{template_id}.potx'
         print(f'extract_image({name}.pdf)')
         extract_image(f'{name}.pdf')
-        print(f'generate_slide({paper_summary}, {template}, {default_option})')
+        print(f'generate_slide({paper_summary}, {template}, {option})')
         generate_slide(settings.MEDIA_ROOT / summary_json_file, settings.BASE_DIR /
-                       f'static/common/potx/template{template_id}.potx', default_option)
+                       template, option)
 
-        # with open(settings.MEDIA_ROOT / summary_json_file, 'r') as file:
-        #    summary_text = file.read()
-        #    generate_slide(summary_text, )
-        # return redirect('paper2slide:adjust_options')
-        return HttpResponse("good")
+        return redirect('paper2slide:adjust_options', pptx_file_name=f'{name}.pptx') 
     template_list = [
         {'id': i, 'name': f'Template {i}', 'thumbnail': f'template{i}.png'} for i in range(1, 11)
     ]
@@ -88,35 +98,64 @@ def apply_template(request):
     return redirect('paper2slide:adjust_options')
 
 
-def upload_template(request):
+def upload_template(request, summay_json_file):
     return HttpResponse("Upload template!")
 
 
 def adjust_options(request, pptx_file_name):
-    form = SlideOptionForm()
+    name, _ = os.path.splitext(pptx_file_name)
+    option_file = open(settings.MEDIA_ROOT / f'{name}_option.json', 'r')
+    option_json = json.load(option_file)
+    option_file.close()
+
     if request.method == 'POST':
         form = SlideOptionForm(request.POST)
         if form.is_valid():
-            option = {
+            new_option = {
                 'title': form.cleaned_data['title'],
                 'username': form.cleaned_data['username'],
                 'titlefont': form.cleaned_data['titlefont'],
                 'subtitlefont': form.cleaned_data['subtitlefont'],
+                'font': form.cleaned_data['font'],
                 'spacing': form.cleaned_data['spacing'],
-                'wide': form.cleaned_data['wide'],
-                'usertemplate': False # TODO
+                'wide': form.cleaned_data['wide'] == 'True',
+                'usertemplate': option_json['usertemplate'],
+                'template': option_json['template']
             }
-            print(option)
-            # TODO: re-generate slide here
-    name, _ = os.path.splitext(pptx_file_name)
+            with open(settings.MEDIA_ROOT / f'{name}_option.json', 'w') as file:
+                json.dump(new_option, file)
+
+            template = new_option['template']
+            print(f'generate_slide({settings.MEDIA_ROOT / name}.json, {template}, {new_option})')
+            generate_slide(settings.MEDIA_ROOT / f'{name}.json', template, new_option)
+            pythoncom.CoInitialize()
+            powerpoint = win32com.client.DispatchEx("Powerpoint.Application")
+            powerpoint.Visible = True
+            deck = powerpoint.Presentations.Open(settings.MEDIA_ROOT / pptx_file_name)
+            deck.SaveAs(settings.MEDIA_ROOT / f'{name}_preview.pdf', 32)
+            deck.Close()
+            powerpoint.Quit()
+            return render(request, 'paper2slide/step-3.html',
+                          {'pdf_file_name': f'{name}_preview.pdf',
+                           'form': form})
+
+    form = SlideOptionForm(initial={
+        'title': option_json['title'],
+        'username': option_json['username'],
+        'titlefont': option_json['titlefont'],
+        'subtitlefont': option_json['subtitlefont'],
+        'font': option_json['font'],
+        'spacing': option_json['spacing'],
+        'wide': option_json['wide']
+    })
     pythoncom.CoInitialize()
     powerpoint = win32com.client.DispatchEx("Powerpoint.Application")
     powerpoint.Visible = True
     deck = powerpoint.Presentations.Open(settings.MEDIA_ROOT / pptx_file_name)
-    deck.SaveAs(settings.MEDIA_ROOT / f'{name}.pdf', 32)
+    deck.SaveAs(settings.MEDIA_ROOT / f'{name}_preview.pdf', 32)
     deck.Close()
     powerpoint.Quit()
-    return render(request, 'paper2slide/step-3.html', {'pdf_file_name': f'{name}.pdf', 'form': form})
+    return render(request, 'paper2slide/step-3.html', {'pdf_file_name': f'{name}_preview.pdf', 'form': form})
 
 # TODO: Heejae
 
