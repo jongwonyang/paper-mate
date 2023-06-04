@@ -216,7 +216,7 @@ def pdf_to_text(pdf_file, save_path):
                         output[-1]["content"] = output[-1]["content"] + \
                             " "+content["content"]
                 else:
-                    if not content["content"][0].isdigit():
+                    if len(output)>0 and (not content["content"][0].isdigit()) and output[-1]["role"] == None:
                         output[-1]["content"] = output[-1]["content"]+" "+content["content"]
 
                     else: output.append({"role":content["role"], "content":content["content"]})
