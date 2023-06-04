@@ -5,6 +5,7 @@ from .preprocessor import convert_references_section_title, extract_table, find_
 import os
 import json
 import re
+import win32api
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
@@ -156,6 +157,9 @@ def adjust_options(request, pptx_file_name):
     pythoncom.CoInitialize()
     powerpoint = win32com.client.DispatchEx("Powerpoint.Application")
     powerpoint.Visible = True
+    print('-2147352567')
+    print(win32api.FormatMessage(-2147352567))
+    print(settings.MEDIA_ROOT / pptx_file_name)
     deck = powerpoint.Presentations.Open(settings.MEDIA_ROOT / pptx_file_name)
     deck.SaveAs(settings.MEDIA_ROOT / f'{name}_preview.pdf', 32)
     deck.Close()
