@@ -45,7 +45,7 @@
   <div class="flex flex-row justify-between my-5 items-center">
     <p>미리보기를 통해 슬라이드 옵션을 조정하세요.</p>
     <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-    onclick="location.href='{% url 'paper2slide:download_pptx' %}?file={{ pptx_file_name }}'">완료</button>
+    onclick="location.href='{% url 'paper2slide:download_pptx' %}?file={{ pptx_file_name }}'; return false;">완료</button>
   </div>
   <iframe src="{% get_media_prefix %}{{ pdf_file_name }}" height="800px" class="mb-4"></iframe>
   <form action="" method="post" class="bg-gray-200 rounded p-4">
