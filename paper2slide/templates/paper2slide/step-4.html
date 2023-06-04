@@ -3,7 +3,6 @@
 {% load static %}
 
 {% block content %}
-<!-- Stepper -->
 <div class="container mx-auto my-10 flex justify-center space-x-10 items-center">
   <div class="flex flex-col items-center">
     <div class="w-12 h-12 flex justify-center items-center rounded-full bg-teal-500 text-white">
@@ -33,7 +32,7 @@
     <hr class="absolute w-full border-teal-500 top-6">
   </div>
   <div class="flex flex-col items-center">
-    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-gray-300">
+    <div class="w-12 h-12 flex justify-center items-center rounded-full bg-teal-500 text-white">
       <span class="text-lg font-bold">4</span>
     </div>
     <span class="text-sm mt-2">다운로드</span>
@@ -41,24 +40,16 @@
 </div>
 
 <div class="container mx-auto flex flex-col bg-slate-50 rounded-lg shadow-md p-10 mb-10">
-  <h1 class="text-2xl font-bold">옵션 조정</h1>
-  <div class="flex flex-row justify-between my-5 items-center">
-    <p>미리보기를 통해 슬라이드 옵션을 조정하세요.</p>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-    onclick="location.href='{% url 'paper2slide:download_pptx' %}?file={{ pptx_file_name }}'">완료</button>
+  <h1 class="text-2xl font-bold">다운로드</h1>
+  <div class="flex flex-col my-5">
+    <p>슬라이드 제작이 완료되었습니다!</p>
+    <p>아래 버튼을 통해 다운로드하세요.</p>
+    <form action="{{ download_link }}" method="GET" class="flex flex-row mt-10">
+        {% csrf_token %}
+        <input type="submit" value="다운로드" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <button class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 mx-5 rounded"
+                onclick="location.href='{% url 'paper2slide:index' %}'; return false;">처음으로</button>
+    </form>
   </div>
-  <iframe src="{% get_media_prefix %}{{ pdf_file_name }}" height="800px" class="mb-4"></iframe>
-  <form action="" method="post" class="bg-gray-200 rounded p-4">
-    {% csrf_token %}
-    {% for field in form %}
-    <div class="mb-4">
-      <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
-        {{ field.label }}
-      </label>
-      {{ field }}
-    </div>
-    {% endfor %}
-    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">다시 생성</button>
-  </form>
 </div>
 {% endblock content %}

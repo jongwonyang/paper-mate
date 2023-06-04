@@ -22,6 +22,7 @@ import win32com.client
 import os
 import fitz
 import cv2
+import mimetypes
 
 import pythoncom
 
@@ -140,7 +141,7 @@ def adjust_options(request, pptx_file_name):
             powerpoint.Quit()
             return render(request, 'paper2slide/step-3.html',
                           {'pdf_file_name': f'{name}_preview.pdf',
-                           'form': form})
+                           'form': form, 'pptx_file_name': f'{name}.pptx'})
 
     form = SlideOptionForm(initial={
         'title': option_json['title'],
@@ -158,7 +159,22 @@ def adjust_options(request, pptx_file_name):
     deck.SaveAs(settings.MEDIA_ROOT / f'{name}_preview.pdf', 32)
     deck.Close()
     powerpoint.Quit()
-    return render(request, 'paper2slide/step-3.html', {'pdf_file_name': f'{name}_preview.pdf', 'form': form})
+    return render(request, 'paper2slide/step-3.html', {
+        'pdf_file_name': f'{name}_preview.pdf',
+        'form': form, 'pptx_file_name': f'{name}.pptx'})
+
+def download_pptx(request):
+    file = request.GET.get('file')
+    download_link = settings.MEDIA_URL + file
+    if request.method == 'POST':
+        fl_path = settings.MEDIA_ROOT / file
+        filename = file
+        fl = open(fl_path, 'r')
+        mime_type, _ = mimetypes.guess_type(fl_path)
+        response = HttpResponse(fl, content_type=mime_type)
+        response['Content-Disposition'] = "attachment; filename=%s" % filename
+        return response 
+    return render(request, 'paper2slide/step-4.html', {'download_link': download_link})
 
 # TODO: Heejae
 
