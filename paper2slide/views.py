@@ -157,9 +157,6 @@ def adjust_options(request, pptx_file_name):
     pythoncom.CoInitialize()
     powerpoint = win32com.client.DispatchEx("Powerpoint.Application")
     powerpoint.Visible = True
-    print('-2147352567')
-    print(win32api.FormatMessage(-2147352567))
-    print(settings.MEDIA_ROOT / pptx_file_name)
     deck = powerpoint.Presentations.Open(settings.MEDIA_ROOT / pptx_file_name)
     deck.SaveAs(settings.MEDIA_ROOT / f'{name}_preview.pdf', 32)
     deck.Close()
