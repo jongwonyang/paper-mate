@@ -120,7 +120,7 @@ def extract_table(data):
                 sheet.cell(row=row_index + 1, column=column_index + 1, value=content)
 
         # Save workbook as XLSX file
-        path = 'table_' + str(i) + '.xlsx'
+        path = 'table_' + str(i+1) + '.xlsx'
         workbook.save(path)
         paths.append(path)
     return paths
