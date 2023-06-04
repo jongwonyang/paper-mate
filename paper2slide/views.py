@@ -476,7 +476,9 @@ def generate_slide(paper_summary, template, option):
 
         # 이제 만들어놓은 summary_seq_seq을 바탕으로 슬라이드 생성!
         for sentences in summary_seq_seq:
-            if sentences[-1] == None:
+            if len(sentences) == 1:
+                pass
+            elif sentences[-1] == None:
                 if len(sentences) == 1:
                     pass
                 else:
@@ -640,6 +642,7 @@ def generate_slide(paper_summary, template, option):
                 table_range = base_cell.CurrentRegion
                 table_range.Copy()
                 table_range = new_slide.Shapes.PasteSpecial()
+                workbook.Close(SaveChanges=False)
                 excel.Quit()
                 # pythoncom.CoUninitialize()
 
@@ -806,6 +809,11 @@ def generate_slide(paper_summary, template, option):
             print(f"summary_seq_seq[{i}]: {s}")
 
         for sentences in summary_seq_seq:
+            print("====================================================")
+            print(f"sentences: {sentences}")
+            print(f"len(sentences): {len(sentences)}")
+            print("====================================================")
+
             if len(sentences) == 1:
                 pass
             elif sentences[-1] == None:
