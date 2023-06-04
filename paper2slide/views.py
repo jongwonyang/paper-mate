@@ -293,7 +293,7 @@ def generate_slide(paper_summary, template, option):
    # parent_dir = os.path.dirname(current_dir)
     uploads_dir = os.path.join(current_dir, "uploads")
     table_dir = os.path.dirname(uploads_dir)
-    picture_dir = os.path.join(uploads_dir, option["title"]+"_cropped")
+    picture_dir = os.path.join(uploads_dir, "cropped")
 
     def just_insert_text(presentation, title, summary_seq, option):
 
@@ -996,8 +996,10 @@ def generate_slide(paper_summary, template, option):
         #             slide.Layout = layout
 
         if (option["wide"] == True):
+            print(f"option[wide]: True")
             presentation.PageSetup.SlideSize = 2
         else:
+            print(f"option[wide]: False")
             presentation.PageSetup.SlideSize = 1
 
         presentation.SaveAs(os.path.join(uploads_dir, save_name))
@@ -1022,7 +1024,7 @@ def extract_image(paper):
 
     doc = fitz.open(uploads_dir + "\\" + paper)
 
-    wholepage_dir = os.path.join(uploads_dir, name+"_whole")
+    wholepage_dir = os.path.join(uploads_dir, "whole")
 
     if not os.path.exists(wholepage_dir):
         os.makedirs(wholepage_dir)
@@ -1042,7 +1044,7 @@ def extract_image(paper):
     source_folder_path = wholepage_dir
     file_list = os.listdir(source_folder_path)
 
-    cropped_dir = os.path.join(uploads_dir, name+"_cropped")
+    cropped_dir = os.path.join(uploads_dir, "cropped")
 
     if not os.path.exists(cropped_dir):
         os.makedirs(cropped_dir)
