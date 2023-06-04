@@ -170,21 +170,43 @@ def data_reconstruction(data):
         })
 
     return result
-
 def find_pattern_match_position(content, summarized, find):
-    pattern = r"(?i)(" + re.escape(find) + r"\s+\d+)(?!:)"
+    if find.lower() == "figure":
+        pattern = r"(?i)(Fig(?:\.|ure)?s?\s*\d+(?:\s*and\s*\d+)?)"
+    elif find.lower() == "table":
+        pattern = r"(?i)(Table(?:s)?\s*\d+(?:\s*and\s*\d+)?)"
+    else:
+        pattern = r"(?i)(" + re.escape(find) + r"\s+\d+)(?!:)"
 
     pattern_matches = re.finditer(pattern, content)
     positions = []
     for match in pattern_matches:
         match_start = match.start()
-        for i in range(-1,len(summarized)-1):
+        for i in range(-1, len(summarized) - 1):
             if i == -1:
-              start_index = 0
+                start_index = 0
             else:
-              start_index = content.index(summarized[i][4:-4]) + len(summarized[i][4:-4])
-            end_index = content.index(summarized[i+1][4:-4])
+                start_index = content.index(summarized[i][4:-4]) + len(summarized[i][4:-4])
+            end_index = content.index(summarized[i + 1][4:-4])
             if start_index <= match_start < end_index:
-                positions.append((match.group(0).lower().replace(" ", "_"), i+1))
+                group = match.group(0).lower().replace(" ", "_")
+                if "figure" in group or "fig." in group:
+                    group = group.replace("fig.", "").replace("figures", "").replace("figure", "").strip("_s")
+                    if "and" in group:
+                        split_group = group.split("and")
+                        for item in split_group:
+                            positions.append(("figure_" + item.strip().strip("_"), i + 1))
+                    else:
+                        positions.append(("figure_" + group.strip().strip("_"), i + 1))
+                elif "table" in group:
+                    group = group.replace("tables", "").replace("table", "").strip("_s")
+                    if "and" in group:
+                        split_group = group.split("and")
+                        for item in split_group:
+                            positions.append(("table_" + item.strip().strip("_"), i + 1))
+                    else:
+                        positions.append(("table_" + group.strip().strip("_"), i + 1))
+                else:
+                    positions.append((group.strip().strip("_"), i + 1))
                 break
     return positions
