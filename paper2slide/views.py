@@ -59,7 +59,7 @@ def handle_template(request, summary_json_file):
                 file = request.FILES['file']
                 fs = FileSystemStorage()
                 potx_file = fs.save(file.name, file)
-                template = settings.MEDIA_ROOT / potx_file 
+                template = settings.MEDIA_ROOT / potx_file
             usertemplate = True
 
         name, _ = os.path.splitext(summary_json_file)
@@ -83,7 +83,7 @@ def handle_template(request, summary_json_file):
         generate_slide(settings.MEDIA_ROOT / summary_json_file, settings.BASE_DIR /
                        template, option)
 
-        return redirect('paper2slide:adjust_options', pptx_file_name=f'{name}.pptx') 
+        return redirect('paper2slide:adjust_options', pptx_file_name=f'{name}.pptx')
     template_list = [
         {'id': i, 'name': f'Template {i}', 'thumbnail': f'template{i}.png'} for i in range(1, 11)
     ]
@@ -126,12 +126,15 @@ def adjust_options(request, pptx_file_name):
                 json.dump(new_option, file)
 
             template = new_option['template']
-            print(f'generate_slide({settings.MEDIA_ROOT / name}.json, {template}, {new_option})')
-            generate_slide(settings.MEDIA_ROOT / f'{name}.json', template, new_option)
+            print(
+                f'generate_slide({settings.MEDIA_ROOT / name}.json, {template}, {new_option})')
+            generate_slide(settings.MEDIA_ROOT /
+                           f'{name}.json', template, new_option)
             pythoncom.CoInitialize()
             powerpoint = win32com.client.DispatchEx("Powerpoint.Application")
             powerpoint.Visible = True
-            deck = powerpoint.Presentations.Open(settings.MEDIA_ROOT / pptx_file_name)
+            deck = powerpoint.Presentations.Open(
+                settings.MEDIA_ROOT / pptx_file_name)
             deck.SaveAs(settings.MEDIA_ROOT / f'{name}_preview.pdf', 32)
             deck.Close()
             powerpoint.Quit()
@@ -290,7 +293,7 @@ def generate_slide(paper_summary, template, option):
    # parent_dir = os.path.dirname(current_dir)
     uploads_dir = os.path.join(current_dir, "uploads")
     table_dir = os.path.dirname(uploads_dir)
-    picture_dir = os.path.join(uploads_dir, option["title"]+"_cropped")
+    picture_dir = os.path.join(uploads_dir, "cropped")
 
     def just_insert_text(presentation, title, summary_seq, option):
 
@@ -613,7 +616,7 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(
                     1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
 
-                # pythoncom.CoInitialize()
+                pythoncom.CoInitialize()
                 excel = win32com.client.gencache.EnsureDispatch(
                     'Excel.Application')
                 workbook = excel.Workbooks.Open(
@@ -972,17 +975,6 @@ def generate_slide(paper_summary, template, option):
         s.Align(1, True)
         s.Align(4, True)
 
-        if (option["wide"] == True):
-            slide_master = presentation.SlideMaster
-            layout = None
-            for custom_layout in slide_master.CustomLayouts:
-                if custom_layout.Width == 1280 and custom_layout.Height == 720:
-                    layout = custom_layout
-                    break
-            if layout is not None:
-                for slide in presentation.Slides:
-                    slide.Layout = layout
-
         # option["usertemplate"] = False
 
         if (template != "basic") and option["usertemplate"] == False:
@@ -991,6 +983,24 @@ def generate_slide(paper_summary, template, option):
 
         if (template != "basic") and option["usertemplate"] == True:
             presentation.ApplyTemplate(os.path.join(uploads_dir, template))
+
+        # if (option["wide"] == True):
+        #     slide_master = presentation.SlideMaster
+        #     layout = None
+        #     for custom_layout in slide_master.CustomLayouts:
+        #         if custom_layout.Width == 1280 and custom_layout.Height == 720:
+        #             layout = custom_layout
+        #             break
+        #     if layout is not None:
+        #         for slide in presentation.Slides:
+        #             slide.Layout = layout
+
+        if (option["wide"] == True):
+            print(f"option[wide]: True")
+            presentation.PageSetup.SlideSize = 2
+        else:
+            print(f"option[wide]: False")
+            presentation.PageSetup.SlideSize = 1
 
         presentation.SaveAs(os.path.join(uploads_dir, save_name))
         presentation.Close()
@@ -1014,7 +1024,7 @@ def extract_image(paper):
 
     doc = fitz.open(uploads_dir + "\\" + paper)
 
-    wholepage_dir = os.path.join(uploads_dir, name+"_whole")
+    wholepage_dir = os.path.join(uploads_dir, "whole")
 
     if not os.path.exists(wholepage_dir):
         os.makedirs(wholepage_dir)
@@ -1034,7 +1044,7 @@ def extract_image(paper):
     source_folder_path = wholepage_dir
     file_list = os.listdir(source_folder_path)
 
-    cropped_dir = os.path.join(uploads_dir, name+"_cropped")
+    cropped_dir = os.path.join(uploads_dir, "cropped")
 
     if not os.path.exists(cropped_dir):
         os.makedirs(cropped_dir)
