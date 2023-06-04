@@ -59,7 +59,7 @@ def handle_template(request, summary_json_file):
                 file = request.FILES['file']
                 fs = FileSystemStorage()
                 potx_file = fs.save(file.name, file)
-                template = settings.MEDIA_ROOT / potx_file 
+                template = settings.MEDIA_ROOT / potx_file
             usertemplate = True
 
         name, _ = os.path.splitext(summary_json_file)
@@ -83,7 +83,7 @@ def handle_template(request, summary_json_file):
         generate_slide(settings.MEDIA_ROOT / summary_json_file, settings.BASE_DIR /
                        template, option)
 
-        return redirect('paper2slide:adjust_options', pptx_file_name=f'{name}.pptx') 
+        return redirect('paper2slide:adjust_options', pptx_file_name=f'{name}.pptx')
     template_list = [
         {'id': i, 'name': f'Template {i}', 'thumbnail': f'template{i}.png'} for i in range(1, 11)
     ]
@@ -126,12 +126,15 @@ def adjust_options(request, pptx_file_name):
                 json.dump(new_option, file)
 
             template = new_option['template']
-            print(f'generate_slide({settings.MEDIA_ROOT / name}.json, {template}, {new_option})')
-            generate_slide(settings.MEDIA_ROOT / f'{name}.json', template, new_option)
+            print(
+                f'generate_slide({settings.MEDIA_ROOT / name}.json, {template}, {new_option})')
+            generate_slide(settings.MEDIA_ROOT /
+                           f'{name}.json', template, new_option)
             pythoncom.CoInitialize()
             powerpoint = win32com.client.DispatchEx("Powerpoint.Application")
             powerpoint.Visible = True
-            deck = powerpoint.Presentations.Open(settings.MEDIA_ROOT / pptx_file_name)
+            deck = powerpoint.Presentations.Open(
+                settings.MEDIA_ROOT / pptx_file_name)
             deck.SaveAs(settings.MEDIA_ROOT / f'{name}_preview.pdf', 32)
             deck.Close()
             powerpoint.Quit()
@@ -613,7 +616,7 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(
                     1).TextFrame.TextRange.Font.Name = option["subtitlefont"]
 
-                # pythoncom.CoInitialize()
+                pythoncom.CoInitialize()
                 excel = win32com.client.gencache.EnsureDispatch(
                     'Excel.Application')
                 workbook = excel.Workbooks.Open(
