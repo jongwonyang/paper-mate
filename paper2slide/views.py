@@ -216,10 +216,13 @@ def pdf_to_text(pdf_file, save_path):
                         output[-1]["content"] = output[-1]["content"] + \
                             " "+content["content"]
                 else:
-                    if len(output)>0 and (not content["content"][0].isdigit()) and output[-1]["role"] == None:
-                        output[-1]["content"] = output[-1]["content"]+" "+content["content"]
+                    if len(output) > 0 and (not content["content"][0].isdigit()) and output[-1]["role"] == None:
+                        output[-1]["content"] = output[-1]["content"] + \
+                            " "+content["content"]
 
-                    else: output.append({"role":content["role"], "content":content["content"]})
+                    else:
+                        output.append(
+                            {"role": content["role"], "content": content["content"]})
         elif reference_flag == 1:
             if output[-1]["content"] == "REFERENCES":
                 output.append(
@@ -296,6 +299,7 @@ def generate_slide(paper_summary, template, option):
     uploads_dir = os.path.join(current_dir, "uploads")
     table_dir = os.path.dirname(uploads_dir)
     picture_dir = os.path.join(uploads_dir, "cropped")
+    original_file_name = os.path.basename(paper_summary)
 
     def just_insert_text(presentation, title, summary_seq, option):
 
@@ -846,7 +850,7 @@ def generate_slide(paper_summary, template, option):
                     with open("tmp.txt", "a", encoding='utf-8') as file:
                         file.write(str(sentence))
 
-        save_name = str(option["title"]) + ".pptx"
+        save_name = str(original_file_name.split(".")[0]) + ".pptx"
 
         PPTApp = win32com.client.gencache.EnsureDispatch(
             "PowerPoint.Application")
@@ -999,10 +1003,12 @@ def generate_slide(paper_summary, template, option):
 
         if (option["wide"] == True):
             print(f"option[wide]: True")
-            presentation.PageSetup.SlideSize = 2
+            presentation.PageSetup.SlideWidth = 33.867 * 35
+            presentation.PageSetup.SlideHeight = 19.05 * 36
         else:
             print(f"option[wide]: False")
-            presentation.PageSetup.SlideSize = 1
+            presentation.PageSetup.SlideWidth = 25.4 * 36
+            presentation.PageSetup.SlideHeight = 19.05 * 36
 
         presentation.SaveAs(os.path.join(uploads_dir, save_name))
         presentation.Close()
