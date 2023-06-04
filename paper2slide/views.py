@@ -975,17 +975,6 @@ def generate_slide(paper_summary, template, option):
         s.Align(1, True)
         s.Align(4, True)
 
-        if (option["wide"] == True):
-            slide_master = presentation.SlideMaster
-            layout = None
-            for custom_layout in slide_master.CustomLayouts:
-                if custom_layout.Width == 1280 and custom_layout.Height == 720:
-                    layout = custom_layout
-                    break
-            if layout is not None:
-                for slide in presentation.Slides:
-                    slide.Layout = layout
-
         # option["usertemplate"] = False
 
         if (template != "basic") and option["usertemplate"] == False:
@@ -994,6 +983,22 @@ def generate_slide(paper_summary, template, option):
 
         if (template != "basic") and option["usertemplate"] == True:
             presentation.ApplyTemplate(os.path.join(uploads_dir, template))
+
+        # if (option["wide"] == True):
+        #     slide_master = presentation.SlideMaster
+        #     layout = None
+        #     for custom_layout in slide_master.CustomLayouts:
+        #         if custom_layout.Width == 1280 and custom_layout.Height == 720:
+        #             layout = custom_layout
+        #             break
+        #     if layout is not None:
+        #         for slide in presentation.Slides:
+        #             slide.Layout = layout
+
+        if (option["wide"] == True):
+            presentation.PageSetup.SlideSize = 2
+        else:
+            presentation.PageSetup.SlideSize = 1
 
         presentation.SaveAs(os.path.join(uploads_dir, save_name))
         presentation.Close()
