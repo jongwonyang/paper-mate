@@ -172,9 +172,9 @@ def data_reconstruction(data):
     return result
 def find_pattern_match_position(content, summarized, find):
     if find.lower() == "figure":
-        pattern = r"(?i)(Fig(?:\.|ure)?s?\s*\d+(?:\s*and\s*\d+)?)"
+        pattern = r"(?i)(Fig(?:\.|ure)?s?\s*\d+(?:\s*and\s*\d+)?)(?!:)"
     elif find.lower() == "table":
-        pattern = r"(?i)(Table(?:s)?\s*\d+(?:\s*and\s*\d+)?)"
+        pattern = r"(?i)(Table(?:s)?\s*\d+(?:\s*and\s*\d+)?)(?!:)"
     else:
         pattern = r"(?i)(" + re.escape(find) + r"\s+\d+)(?!:)"
 
