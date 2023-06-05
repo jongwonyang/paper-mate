@@ -316,13 +316,15 @@ def generate_slide(paper_summary, template, option):
                     "Content with Caption": 8,
                     "Picture with Caption": 9}
 
+
+    original_file_name = os.path.basename(paper_summary)
     current_dir = os.getcwd()
     now_dir = current_dir
    # parent_dir = os.path.dirname(current_dir)
     uploads_dir = os.path.join(current_dir, "uploads")
     table_dir = os.path.dirname(uploads_dir)
-    picture_dir = os.path.join(uploads_dir, "cropped")
-    original_file_name = os.path.basename(paper_summary)
+    picture_dir = os.path.join(uploads_dir, f"{os.path.splitext(original_file_name)[0]}_cropped")
+    
 
     def just_insert_text(presentation, title, summary_seq, option):
 
@@ -881,7 +883,7 @@ def generate_slide(paper_summary, template, option):
                     with open("tmp.txt", "a", encoding='utf-8') as file:
                         file.write(str(sentence))
 
-        save_name = str(original_file_name.split(".")[0]) + ".pptx"
+        save_name = str(os.path.splitext(original_file_name)[0]) + ".pptx"
 
         PPTApp = win32com.client.gencache.EnsureDispatch(
             "PowerPoint.Application")
@@ -1059,11 +1061,13 @@ def extract_image(paper):
     current_dir = os.getcwd()
     uploads_dir = os.path.join(current_dir, "uploads")
 
-    name = paper.split(".")[0]
+#save_name = str(os.path.splitext(original_file_name)[0]) + ".pptx"
+
+    name = os.path.splitext(os.path.basename(paper))[0]
 
     doc = fitz.open(uploads_dir + "\\" + paper)
 
-    wholepage_dir = os.path.join(uploads_dir, "whole")
+    wholepage_dir = os.path.join(uploads_dir, f"{name}_whole")
 
     if not os.path.exists(wholepage_dir):
         os.makedirs(wholepage_dir)
@@ -1071,8 +1075,8 @@ def extract_image(paper):
     for i, page in enumerate(doc):
         pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72), dpi=None,
                               colorspace=fitz.csRGB, clip=True, alpha=True, annots=True)
-        pix.save(wholepage_dir + f"\\samplepdfimage-%i.png" %
-                 page.number)  # save file
+        pix.save(wholepage_dir + f"\\samplepdfimage-%03d.png" %
+                page.number)  # save file
 
     ######################################################
     # 2. 각 페이지에서 이미지 crop 하기
@@ -1083,7 +1087,7 @@ def extract_image(paper):
     source_folder_path = wholepage_dir
     file_list = os.listdir(source_folder_path)
 
-    cropped_dir = os.path.join(uploads_dir, "cropped")
+    cropped_dir = os.path.join(uploads_dir, f"{name}_cropped")
 
     if not os.path.exists(cropped_dir):
         os.makedirs(cropped_dir)
@@ -1114,7 +1118,7 @@ def extract_image(paper):
         # 흰색 사각형 영역 검출 및 자르기
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
-            if w > width//6 and h > 10:  # 흰색 사각형으로 인정할 최소 너비와 높이 설정
+            if w > width//9 and h > 10:  # 흰색 사각형으로 인정할 최소 너비와 높이 설정
                 cropped_image = image[y-5:y+h+5, x-5:x+w+5]
                 cv2.imwrite(cropped_dir + "\\" + "figure_" +
                             str(n+1) + ".png", cropped_image)
