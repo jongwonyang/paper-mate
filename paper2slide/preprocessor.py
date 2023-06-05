@@ -120,7 +120,7 @@ def extract_table(data):
                 sheet.cell(row=row_index + 1, column=column_index + 1, value=content)
 
         # Save workbook as XLSX file
-        path = 'table_' + str(i) + '.xlsx'
+        path = 'table_' + str(i+1) + '.xlsx'
         workbook.save(path)
         paths.append(path)
     return paths
@@ -208,5 +208,25 @@ def find_pattern_match_position(content, summarized, find):
                         positions.append(("table_" + group.strip().strip("_"), i + 1))
                 else:
                     positions.append((group.strip().strip("_"), i + 1))
-                break
+        if positions == [] and match:
+            group = match.group(0).lower().replace(" ", "_")
+            if "figure" in group or "fig." in group:
+                group = group.replace("fig.", "").replace("figures", "").replace("figure", "").strip("_s")
+                if "and" in group:
+                    split_group = group.split("and")
+                    for item in split_group:
+                        positions.append(("figure_" + item.strip().strip("_"), i + 1))
+                else:
+                    positions.append(("figure_" + group.strip().strip("_"), i + 1))
+            elif "table" in group:
+                group = group.replace("tables", "").replace("table", "").strip("_s")
+                if "and" in group:
+                    split_group = group.split("and")
+                    for item in split_group:
+                        positions.append(("table_" + item.strip().strip("_"), i + 1))
+                else:
+                    positions.append(("table_" + group.strip().strip("_"), i + 1))
+            else:
+                positions.append((group.strip().strip("_"), i + 1))
+                
     return positions
