@@ -165,6 +165,7 @@ def adjust_options(request, pptx_file_name):
         'pdf_file_name': f'{name}_preview.pdf',
         'form': form, 'pptx_file_name': f'{name}.pptx'})
 
+
 def download_pptx(request):
     file = request.GET.get('file')
     download_link = settings.MEDIA_URL + file
@@ -175,7 +176,7 @@ def download_pptx(request):
         mime_type, _ = mimetypes.guess_type(fl_path)
         response = HttpResponse(fl, content_type=mime_type)
         response['Content-Disposition'] = "attachment; filename=%s" % filename
-        return response 
+        return response
     return render(request, 'paper2slide/step-4.html', {'download_link': download_link})
 
 # TODO: Heejae
@@ -237,15 +238,21 @@ def pdf_to_text(pdf_file, save_path):
                 else:
                     if len(output) > 0 and (not re.match(r'^\d[\.\s].*', content["content"])):
                         if output[-1]["role"] == None:
-                            output[-1]["content"] = output[-1]["content"] + " " + content["content"]
+                            output[-1]["content"] = output[-1]["content"] + \
+                                " " + content["content"]
                         else:
-                            output.append({"role":None, "content":content["content"]})
-                    elif content["role"] == "sectionHeading" and count<=int(content["content"][0])<count+2:
+                            output.append(
+                                {"role": None, "content": content["content"]})
+                    elif content["role"] == "sectionHeading" and count <= int(content["content"][0]) < count+2:
                         count = int(content["content"][0])
-                        output.append({"role":content["role"], "content":content["content"]})
-                    elif len(output) > 0 : 
-                        output[-1]["content"] = output[-1]["content"] + " " + content["content"]
-                    else: output.append({"role":content["role"], "content":content["content"]})
+                        output.append(
+                            {"role": content["role"], "content": content["content"]})
+                    elif len(output) > 0:
+                        output[-1]["content"] = output[-1]["content"] + \
+                            " " + content["content"]
+                    else:
+                        output.append(
+                            {"role": content["role"], "content": content["content"]})
         elif reference_flag == 1:
             if output[-1]["content"] == "REFERENCES":
                 output.append(
@@ -316,15 +323,14 @@ def generate_slide(paper_summary, template, option):
                     "Content with Caption": 8,
                     "Picture with Caption": 9}
 
-
     original_file_name = os.path.basename(paper_summary)
     current_dir = os.getcwd()
     now_dir = current_dir
    # parent_dir = os.path.dirname(current_dir)
     uploads_dir = os.path.join(current_dir, "uploads")
     table_dir = os.path.dirname(uploads_dir)
-    picture_dir = os.path.join(uploads_dir, f"{os.path.splitext(original_file_name)[0]}_cropped")
-    
+    picture_dir = os.path.join(
+        uploads_dir, f"{os.path.splitext(original_file_name)[0]}_cropped")
 
     def just_insert_text(presentation, title, summary_seq, option):
 
@@ -773,12 +779,24 @@ def generate_slide(paper_summary, template, option):
         index_of_contents_sentence = index_of_picture_sentence + index_of_table_sentence
         index_of_contents_sentence = sorted(index_of_contents_sentence)
 
+        before_was_figure = False
         for index in index_of_contents_sentence:
-            try:
-                i = figure_seq.index(index)
-                contents_list.append(figure_seq[i-1])
-            except ValueError:
-                contents_list.append(table_seq[table_seq.index(index)-1])
+            if before_was_figure == False:
+                try:
+                    i = figure_seq.index(index)
+                    contents_list.append(figure_seq[i-1])
+                    before_was_figure = True
+                except ValueError:
+                    contents_list.append(table_seq[table_seq.index(index)-1])
+                    before_was_figure = False
+            else:
+                try:
+                    i = table_seq.index(index)
+                    contents_list.append(table_seq[i-1])
+                    before_was_figure = False
+                except ValueError:
+                    contents_list.append(figure_seq[figure_seq.index(index)-1])
+                    before_was_figure = True
 
         summary_seq_seq = []
         LastSentenceDoesntIncludeTableFlag = True
@@ -1061,7 +1079,7 @@ def extract_image(paper):
     current_dir = os.getcwd()
     uploads_dir = os.path.join(current_dir, "uploads")
 
-#save_name = str(os.path.splitext(original_file_name)[0]) + ".pptx"
+# save_name = str(os.path.splitext(original_file_name)[0]) + ".pptx"
 
     name = os.path.splitext(os.path.basename(paper))[0]
 
@@ -1076,7 +1094,7 @@ def extract_image(paper):
         pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72), dpi=None,
                               colorspace=fitz.csRGB, clip=True, alpha=True, annots=True)
         pix.save(wholepage_dir + f"\\samplepdfimage-%03d.png" %
-                page.number)  # save file
+                 page.number)  # save file
 
     ######################################################
     # 2. 각 페이지에서 이미지 crop 하기
