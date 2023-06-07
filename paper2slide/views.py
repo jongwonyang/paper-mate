@@ -220,48 +220,49 @@ def pdf_to_text(pdf_file, save_path):
     reference_flag = 0
     count = 0
     for content in paragraphs:
-        if reference_flag == 0:
-            if convert_references_section_title(content["content"]) == "REFERENCES":
-                output.append({"role": "sectionHeading",
-                               "content": "REFERENCES"})
-                reference_flag = 1
-            elif content["role"] == "sectionHeading" or content["role"] == None:
-                if content["content"].upper().strip() == "ACKNOWLEDGEMENTS":
-                    break
-                elif content["content"].upper().strip() == "ABSTRACT":
+        if "http" not in content:
+            if reference_flag == 0:
+                if convert_references_section_title(content["content"]) == "REFERENCES":
                     output.append({"role": "sectionHeading",
-                                   "content": "ABSTRACT"})
-                elif len(output) > 0 and content["role"] == None and output[-1]["role"] == None:
-                    if len(content["content"]) > 10:
-                        output[-1]["content"] = output[-1]["content"] + \
-                            " "+content["content"]
-                else:
-                    if len(output) > 0 and (not re.match(r'^\d[\.\s].*', content["content"])):
-                        if output[-1]["role"] == None:
+                                "content": "REFERENCES"})
+                    reference_flag = 1
+                elif content["role"] == "sectionHeading" or content["role"] == None:
+                    if content["content"].upper().strip() == "ACKNOWLEDGEMENTS":
+                        break
+                    elif content["content"].upper().strip() == "ABSTRACT":
+                        output.append({"role": "sectionHeading",
+                                    "content": "ABSTRACT"})
+                    elif len(output) > 0 and content["role"] == None and output[-1]["role"] == None:
+                        if len(content["content"]) > 10:
+                            output[-1]["content"] = output[-1]["content"] + \
+                                " "+content["content"]
+                    else:
+                        if len(output) > 0 and (not re.match(r'^\d[\.\s].*', content["content"])):
+                            if output[-1]["role"] == None:
+                                output[-1]["content"] = output[-1]["content"] + \
+                                    " " + content["content"]
+                            else:
+                                output.append(
+                                    {"role": None, "content": content["content"]})
+                        elif content["role"] == "sectionHeading" and count <= int(content["content"][0]) < count+2:
+                            count = int(content["content"][0])
+                            output.append(
+                                {"role": content["role"], "content": content["content"]})
+                        elif len(output) > 0:
                             output[-1]["content"] = output[-1]["content"] + \
                                 " " + content["content"]
                         else:
                             output.append(
-                                {"role": None, "content": content["content"]})
-                    elif content["role"] == "sectionHeading" and count <= int(content["content"][0]) < count+2:
-                        count = int(content["content"][0])
-                        output.append(
-                            {"role": content["role"], "content": content["content"]})
-                    elif len(output) > 0:
-                        output[-1]["content"] = output[-1]["content"] + \
-                            " " + content["content"]
-                    else:
-                        output.append(
-                            {"role": content["role"], "content": content["content"]})
-        elif reference_flag == 1:
-            if output[-1]["content"] == "REFERENCES":
-                output.append(
-                    {"role": content["role"], "content": content["content"]})
-            elif content["role"] == "sectionHeading":
-                reference_flag == 0
-            else:
-                output[-1]["content"] = output[-1]["content"] + \
-                    " "+content["content"]
+                                {"role": content["role"], "content": content["content"]})
+            elif reference_flag == 1:
+                if output[-1]["content"] == "REFERENCES":
+                    output.append(
+                        {"role": content["role"], "content": content["content"]})
+                elif content["role"] == "sectionHeading":
+                    reference_flag == 0
+                else:
+                    output[-1]["content"] = output[-1]["content"] + \
+                        " "+content["content"]
 
     for i in range(len(output)):
         output[i]["content"] = get_cleaned_text(output[i]["content"])
