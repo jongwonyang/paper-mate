@@ -369,6 +369,9 @@ def generate_slide(paper_summary, template, option):
             if (numinput == Textinsertion + 1):
                 this_paragraph.Text = summary_seq[index1]
                 Textinsertion = Textinsertion + 1
+            elif index1 == numinput -1 and (summary_seq[index1+1]) is None:
+                this_paragraph.Text = seq[index1]
+                Textinsertion = Textinsertion + 1
             else:
                 this_paragraph.Text = summary_seq[index1] + "\n"
                 Textinsertion = Textinsertion + 1
@@ -412,25 +415,36 @@ def generate_slide(paper_summary, template, option):
                 body = new_slide.Shapes.Item(2).TextFrame.TextRange
                 Textinsertion = 0
 
-                for numinput, _ in enumerate(seq):
+
+                numinput = 0
+                for _, _ in enumerate(seq):
                     numinput = numinput+1
 
                 for index1, _ in enumerate(seq):
+                    
                     this_paragraph = body.Paragraphs(index1+1)
-                    if (numinput == Textinsertion + 1):
-                        this_paragraph.Text = seq[index1]
-                        Textinsertion = Textinsertion + 1
+                    if len(seq) == 1 and seq[0] is None:
+                        pass
                     else:
-                        this_paragraph.Text = seq[index1] + "\n"
-                        Textinsertion = Textinsertion + 1
-                    this_paragraph.ParagraphFormat.Bullet.Visible = True
+                        if (numinput == Textinsertion + 1):
+                            this_paragraph.Text = seq[index1]
+                            Textinsertion = Textinsertion + 1
+                            #####################################################################
+                        elif index1 == numinput-1 and (seq[index1+1]) is None:
+                            this_paragraph.Text = seq[index1]
+                            Textinsertion = Textinsertion + 1
+                            #####################################################################
+                        else:
+                            this_paragraph.Text = seq[index1] + "\n"
+                            Textinsertion = Textinsertion + 1
+                        this_paragraph.ParagraphFormat.Bullet.Visible = True
 
-                new_slide.Shapes.Item(
-                    2).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
-                new_slide.Shapes.Item(
-                    2).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
-                new_slide.Shapes.Item(
-                    2).TextFrame.TextRange.Font.Name = option["font"]
+                        new_slide.Shapes.Item(
+                            2).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
+                        new_slide.Shapes.Item(
+                            2).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
+                        new_slide.Shapes.Item(
+                            2).TextFrame.TextRange.Font.Name = option["font"]
 
             n += 1
 
@@ -698,12 +712,16 @@ def generate_slide(paper_summary, template, option):
                 # table = new_slide.Shapes.Item(n)
                 # table.Table.ScaleProportionally(min(1000//table.Width, 700//table.Height))
                 # table.Table.title = sentences[1]
-                scale = min(1000//table_range.Width, 700//table_range.Height)
+                scale = min(600//table_range.Width, 450//table_range.Height)
                 table_range.ScaleWidth(scale, 0)
                 table_range.ScaleHeight(scale, 0)
                 # table_range.Item().Table.title = sentences[1]
+                table_range.Top = (new_slide.Master.Height + new_slide.Shapes.Item(1).Top + new_slide.Shapes.Item(1).Height)//2-(table_range.Height//2) - 10
+                table_range.Left = new_slide.Master.Width//2 - table_range.Width//2
 
-                new_slide.Shapes.AddTextbox(1, 100, 100, 100, 100)
+                new_slide.Shapes.AddTextbox(1, 100, 100, table_range.Width+100, 100)
+                new_slide.Shapes.Item(3).Left = new_slide.Master.Width//2 - new_slide.Shapes.Item(3).Width//2
+                new_slide.Shapes.Item(3).Top = table_range.Top + table_range.Height + 10
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Text = sentences[0]
                 new_slide.Shapes.Item(
@@ -714,11 +732,13 @@ def generate_slide(paper_summary, template, option):
                     3).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Font.Name = option["font"]
-                new_slide.Shapes.Item(3).TextFrame.WordWrap = False
+                new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Size = 20
+                new_slide.Shapes.Item(3).TextFrame.WordWrap = True
+                new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
 
                 # new_slide.Shapes.Item(3).Top = table_shape_range.Top - new_slide.Shapes.Item(3).Height
                 new_slide.Shapes.Item(3).Top = (
-                    table_range.Top + table_range.Height + new_slide.Shapes.Item(3).Height)
+                    table_range.Top + table_range.Height + 20)
                 new_slide.Shapes.Item(3).Left = table_range.Left
 
                 # table.Name = "a"
@@ -974,6 +994,7 @@ def generate_slide(paper_summary, template, option):
                     2).TextFrame.TextRange.Text = option["title"]
                 new_slide.Shapes.Item(
                     2).TextFrame.TextRange.Font.Name = option["titlefont"]
+                new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
 
                 # figure와 table 개수 세기
                 # n_figure = 0
