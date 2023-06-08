@@ -334,6 +334,10 @@ def generate_slide(paper_summary, template, option):
 
     def just_insert_text(presentation, title, summary_seq, option):
 
+        print("=====================================================================")
+        print(f"summary_seq: {summary_seq}")
+        print("=====================================================================")
+
         layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(
             slide_layout["title and Content"])
         new_slide = presentation.Slides.AddSlide(
@@ -361,12 +365,13 @@ def generate_slide(paper_summary, template, option):
 
         body = new_slide.Shapes.Item(2).TextFrame.TextRange
         Textinsertion = 0
-        for numinput, _ in enumerate(summary_seq):
-            numiput = numinput+1
+        numinput = 0
+        for _, _ in enumerate(summary_seq):
+            numinput = numinput+1
 
         for index1, _ in enumerate(summary_seq):
             this_paragraph = body.Paragraphs(index1+1)
-            if (numinput == Textinsertion + 1):
+            if (numinput == Textinsertion+1):
                 this_paragraph.Text = summary_seq[index1]
                 Textinsertion = Textinsertion + 1
             elif index1 == numinput -1 and (summary_seq[index1+1]) is None:
@@ -685,6 +690,8 @@ def generate_slide(paper_summary, template, option):
                 # table_data = table_range.Value
                 base_cell = worksheet.Range("A1")
                 table_range = base_cell.CurrentRegion
+                columns = table_range.Columns.Count
+                rows = table_range.Rows.Count
                 table_range.Copy()
                 table_range = new_slide.Shapes.PasteSpecial()
                 workbook.Close(SaveChanges=False)
@@ -696,6 +703,8 @@ def generate_slide(paper_summary, template, option):
                 # print(type(table))
                 # print("--------------------------------------------------------------------------")
                 n = 0
+                table = None
+                
                 for i, shape in enumerate(new_slide.Shapes):
                     print(
                         f"i: {i} // shape: {shape} // HasTable: {shape.HasTable}")
@@ -707,21 +716,67 @@ def generate_slide(paper_summary, template, option):
                         print(
                             "--------------------------------------------------------------------------")
                         n = i+1
+
+                        for row in range(rows):
+                            for col in range(columns):
+                                if shape.Table.Cell(row+1, col+1).Shape.HasTextFrame:
+                                    #shape.Table.Cell(row+1, col+1).Shape.TextFrame.AutoSize = win32com.client.constants.ppAutoSizeShapeToFitText
+                                    shape.Table.Cell(row+1, col+1).Shape.TextFrame.HorizontalAnchor = 2 #msoAnchorCenter
+                                    shape.Table.Cell(row+1, col+1).Shape.TextFrame.VerticalAnchor = 3 # msoAnchorMiddle
+                                    shape.Table.Cell(row+1, col+1).Shape.TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
                         break
 
                 # table = new_slide.Shapes.Item(n)
                 # table.Table.ScaleProportionally(min(1000//table.Width, 700//table.Height))
                 # table.Table.title = sentences[1]
-                scale = min(600//table_range.Width, 450//table_range.Height)
+                scale = min(700//table_range.Width, 550//table_range.Height)
                 table_range.ScaleWidth(scale, 0)
                 table_range.ScaleHeight(scale, 0)
+                table_range.ScaleWidth(table_range.Height*1.618/table_range.Width,0)
                 # table_range.Item().Table.title = sentences[1]
-                table_range.Top = (new_slide.Master.Height + new_slide.Shapes.Item(1).Top + new_slide.Shapes.Item(1).Height)//2-(table_range.Height//2) - 10
-                table_range.Left = new_slide.Master.Width//2 - table_range.Width//2
+                
+                longtextFlag = 0
+                width = 0
+                for row in range(rows):
+                    for col in range(columns):
+                        cell_width = table.Table.Cell(row+1, col+1).Shape.Width
+                        # if '\r' in cell_text or '\n' in cell_text:
+                        #     longtextFlag = True
+                        if width < cell_width:
+                            width = cell_width
+                            longtextFlag += 1
 
-                new_slide.Shapes.AddTextbox(1, 100, 100, table_range.Width+100, 100)
-                new_slide.Shapes.Item(3).Left = new_slide.Master.Width//2 - new_slide.Shapes.Item(3).Width//2
-                new_slide.Shapes.Item(3).Top = table_range.Top + table_range.Height + 10
+                while longtextFlag > 1 and table_range.Width < new_slide.Master.Width/1.15:
+                    table_range.ScaleWidth(1.15,0)
+                    longtextFlag = 0
+                    width = 0
+                    for row in range(rows):
+                        for col in range(columns):
+                            cell_width = table.Table.Cell(row+1, col+1).Shape.Width
+                            # if '\r' in cell_text or '\n' in cell_text:
+                            #     longtextFlag = True
+                            if width < cell_width:
+                                width = cell_width
+                                longtextFlag += 1
+
+
+                table_range.Top = (new_slide.Master.Height + new_slide.Shapes.Item(1).Top + new_slide.Shapes.Item(1).Height)//2-(table_range.Height//2) - 30
+                table_range.Left = new_slide.Master.Width//2 - table_range.Width//2
+                
+                # table_range.TextFrame.WordWrap = False
+
+                # for element in table_range:
+                #     if element.HasTextFrame:
+                #         print("**************************************************************")
+                #         print(f"text: {element.TextFrame.TextRange.Text}")
+                #         print("**************************************************************")
+                #         element.TextFrame.WordWrap = False
+                #         element.TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
+                        # element.TextFrame.TextRange.ParagraphFormat.Alignment = 1
+                        # element.TextFrame.TextRange.ParagraphFormat.Alignment = 4
+
+                new_slide.Shapes.AddTextbox(1, 100, 100, table_range.Width*2, 100)  
+                new_slide.Shapes.Item(3).Top = table_range.Top + table_range.Height + 5
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Text = sentences[0]
                 new_slide.Shapes.Item(
@@ -733,13 +788,18 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Font.Name = option["font"]
                 new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Size = 20
-                new_slide.Shapes.Item(3).TextFrame.WordWrap = True
+                new_slide.Shapes.Item(3).TextFrame.AutoSize = win32com.client.constants.ppAutoSizeNone
+                new_slide.Shapes.Item(3).TextFrame.WordWrap = False
+                new_slide.Shapes.Item(3).Width = table_range.Width *2
+                new_slide.Shapes.Item(3).TextFrame.HorizontalAnchor = 2
+                new_slide.Shapes.Item(3).TextFrame.VerticalAnchor = 3
                 new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
+                new_slide.Shapes.Item(3).Left = new_slide.Master.Width//2 - new_slide.Shapes.Item(3).Width//2
 
                 # new_slide.Shapes.Item(3).Top = table_shape_range.Top - new_slide.Shapes.Item(3).Height
                 new_slide.Shapes.Item(3).Top = (
                     table_range.Top + table_range.Height + 20)
-                new_slide.Shapes.Item(3).Left = table_range.Left
+                # new_slide.Shapes.Item(3).Left = table_range.Left
 
                 # table.Name = "a"
                 new_slide.Shapes.Item(3).Name = "b"
@@ -994,7 +1054,7 @@ def generate_slide(paper_summary, template, option):
                     2).TextFrame.TextRange.Text = option["title"]
                 new_slide.Shapes.Item(
                     2).TextFrame.TextRange.Font.Name = option["titlefont"]
-                new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
+                #new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
 
                 # figure와 table 개수 세기
                 # n_figure = 0
