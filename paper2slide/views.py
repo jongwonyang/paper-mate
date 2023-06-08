@@ -674,6 +674,7 @@ def generate_slide(paper_summary, template, option):
                 table_range = base_cell.CurrentRegion
                 table_range.Copy()
                 table_range = new_slide.Shapes.PasteSpecial()
+                excel.CutCopyMode = 0 
                 workbook.Close(SaveChanges=False)
                 excel.Quit()
                 # pythoncom.CoUninitialize()
