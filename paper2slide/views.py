@@ -565,6 +565,7 @@ def generate_slide(paper_summary, template, option):
                     3).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Font.Name = option["font"]
+                new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Size = 20
 
     def insert_text_with_table(presentation, title, summary_seq, table_seq, option):
 
