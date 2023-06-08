@@ -232,8 +232,9 @@ def pdf_to_text(pdf_file, save_path):
                                 "content": "REFERENCES"})
                     reference_flag = 1
                 elif content["role"] == "sectionHeading" or content["role"] == None:
-                    if content["content"].upper().strip() == "ACKNOWLEDGEMENTS":
-                        break
+                    if content["content"].upper().strip() == "ACKNOWLEDGEMENTS" or content["content"].upper().strip() == "ACKNOWLEDGMENTS":
+                        output.append({"role": "sectionHeading",
+                                    "content": "ACKNOWLEDGEMENTS"})
                     elif content["content"].upper().strip() == "ABSTRACT":
                         output.append({"role": "sectionHeading",
                                     "content": "ABSTRACT"})
