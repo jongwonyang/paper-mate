@@ -225,6 +225,7 @@ def pdf_to_text(pdf_file, save_path):
         if "http" not in content["content"]:
             if title_flag == 0 and content["role"] == "title":
                 main_title = content["content"]
+                title_flag = 1
             if reference_flag == 0:
                 if convert_references_section_title(content["content"]) == "REFERENCES":
                     output.append({"role": "sectionHeading",
