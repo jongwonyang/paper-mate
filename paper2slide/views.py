@@ -64,10 +64,12 @@ def handle_template(request, summary_json_file):
                 potx_file = fs.save(file.name, file)
                 template = settings.MEDIA_ROOT / potx_file
             usertemplate = True
-
+        with open(settings.MEDIA_ROOT / summary_json_file, 'r') as file:
+            summary_dict = json.load(file)
         name, _ = os.path.splitext(summary_json_file)
         option = {
-            'title': name,
+            # 'title': name,
+            'title' : summary_dict["mainTitle"],
             'username': 'username',
             'titlefont': 'Arial',
             'subtitlefont': 'Arial',
@@ -219,21 +221,27 @@ def pdf_to_text(pdf_file, save_path):
     output = []
     reference_flag = 0
     count = 0
+    title_flag = 0
+    main_title = ""
     for content in paragraphs:
-        if "http" not in content:
+        if "http" not in content["content"]:
+            if title_flag == 0 and content["role"] == "title":
+                main_title = content["content"]
+                title_flag = 1
             if reference_flag == 0:
                 if convert_references_section_title(content["content"]) == "REFERENCES":
                     output.append({"role": "sectionHeading",
                                 "content": "REFERENCES"})
                     reference_flag = 1
                 elif content["role"] == "sectionHeading" or content["role"] == None:
-                    if content["content"].upper().strip() == "ACKNOWLEDGEMENTS":
-                        break
+                    if content["content"].upper().strip() == "ACKNOWLEDGEMENTS" or content["content"].upper().strip() == "ACKNOWLEDGMENTS":
+                        output.append({"role": "sectionHeading",
+                                    "content": "ACKNOWLEDGEMENTS"})
                     elif content["content"].upper().strip() == "ABSTRACT":
                         output.append({"role": "sectionHeading",
                                     "content": "ABSTRACT"})
                     elif len(output) > 0 and content["role"] == None and output[-1]["role"] == None:
-                        if len(content["content"]) > 10:
+                        if len(content["content"]) > 20:
                             output[-1]["content"] = output[-1]["content"] + \
                                 " "+content["content"]
                     else:
@@ -265,7 +273,8 @@ def pdf_to_text(pdf_file, save_path):
                         " "+content["content"]
 
     for i in range(len(output)):
-        output[i]["content"] = get_cleaned_text(output[i]["content"])
+        if output[i]["role"] == None:
+            output[i]["content"] = get_cleaned_text(output[i]["content"])
         # et al. 때문에 .으로 문장을 구분하는 방식에 어려움 존재 -> 먼저 제거 후 다시 삽입
 
     output = summarize_text(output)
@@ -275,7 +284,7 @@ def pdf_to_text(pdf_file, save_path):
     processed_data["tables"] = extract_table(tables)
 
     processed_data["sentences"] = data_reconstruction(processed_data)
-
+    processed_data["mainTitle"] = main_title
     for i in range(len(processed_data["sentences"])):
         if 'summarized' in processed_data["sentences"][i]:
             if processed_data["sentences"][i]["content"] is not None:
@@ -295,13 +304,13 @@ def pdf_to_text(pdf_file, save_path):
         else:
             processed_data["sentences"][i]["figures"] = []
 
-    all_text = ""
-    for content in processed_data["sentences"]:
-        if content["content"] is not None:
-            all_text = all_text + " " + content["content"]
-    keywords = extract_keywords_from_paragraph(all_text)
+    # all_text = ""
+    # for content in processed_data["sentences"]:
+    #     if content["content"] is not None:
+    #         all_text = all_text + " " + content["content"]
+    # keywords = extract_keywords_from_paragraph(all_text)
 
-    processed_data["keywords"] = keywords
+    # processed_data["keywords"] = keywords
 
     with open(save_path, 'w') as json_file:
         json.dump(processed_data, json_file)
@@ -335,6 +344,10 @@ def generate_slide(paper_summary, template, option):
 
     def just_insert_text(presentation, title, summary_seq, option):
 
+        print("=====================================================================")
+        print(f"summary_seq: {summary_seq}")
+        print("=====================================================================")
+
         layout = presentation.Designs.Item(1).SlideMaster.CustomLayouts.Item(
             slide_layout["title and Content"])
         new_slide = presentation.Slides.AddSlide(
@@ -362,13 +375,17 @@ def generate_slide(paper_summary, template, option):
 
         body = new_slide.Shapes.Item(2).TextFrame.TextRange
         Textinsertion = 0
-        for numinput, _ in enumerate(summary_seq):
-            numiput = numinput+1
+        numinput = 0
+        for _, _ in enumerate(summary_seq):
+            numinput = numinput+1
 
         for index1, _ in enumerate(summary_seq):
             this_paragraph = body.Paragraphs(index1+1)
-            if (numinput == Textinsertion + 1):
+            if (numinput == Textinsertion+1):
                 this_paragraph.Text = summary_seq[index1]
+                Textinsertion = Textinsertion + 1
+            elif index1 == numinput -1 and (summary_seq[index1+1]) is None:
+                this_paragraph.Text = seq[index1]
                 Textinsertion = Textinsertion + 1
             else:
                 this_paragraph.Text = summary_seq[index1] + "\n"
@@ -413,25 +430,36 @@ def generate_slide(paper_summary, template, option):
                 body = new_slide.Shapes.Item(2).TextFrame.TextRange
                 Textinsertion = 0
 
-                for numinput, _ in enumerate(seq):
+
+                numinput = 0
+                for _, _ in enumerate(seq):
                     numinput = numinput+1
 
                 for index1, _ in enumerate(seq):
+                    
                     this_paragraph = body.Paragraphs(index1+1)
-                    if (numinput == Textinsertion + 1):
-                        this_paragraph.Text = seq[index1]
-                        Textinsertion = Textinsertion + 1
+                    if len(seq) == 1 and seq[0] is None:
+                        pass
                     else:
-                        this_paragraph.Text = seq[index1] + "\n"
-                        Textinsertion = Textinsertion + 1
-                    this_paragraph.ParagraphFormat.Bullet.Visible = True
+                        if (numinput == Textinsertion + 1):
+                            this_paragraph.Text = seq[index1]
+                            Textinsertion = Textinsertion + 1
+                            #####################################################################
+                        elif index1 == numinput-1 and (seq[index1+1]) is None:
+                            this_paragraph.Text = seq[index1]
+                            Textinsertion = Textinsertion + 1
+                            #####################################################################
+                        else:
+                            this_paragraph.Text = seq[index1] + "\n"
+                            Textinsertion = Textinsertion + 1
+                        this_paragraph.ParagraphFormat.Bullet.Visible = True
 
-                new_slide.Shapes.Item(
-                    2).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
-                new_slide.Shapes.Item(
-                    2).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
-                new_slide.Shapes.Item(
-                    2).TextFrame.TextRange.Font.Name = option["font"]
+                        new_slide.Shapes.Item(
+                            2).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
+                        new_slide.Shapes.Item(
+                            2).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
+                        new_slide.Shapes.Item(
+                            2).TextFrame.TextRange.Font.Name = option["font"]
 
             n += 1
 
@@ -547,6 +575,7 @@ def generate_slide(paper_summary, template, option):
                     3).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Font.Name = option["font"]
+                new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Size = 20
 
     def insert_text_with_table(presentation, title, summary_seq, table_seq, option):
 
@@ -672,8 +701,11 @@ def generate_slide(paper_summary, template, option):
                 # table_data = table_range.Value
                 base_cell = worksheet.Range("A1")
                 table_range = base_cell.CurrentRegion
+                columns = table_range.Columns.Count
+                rows = table_range.Rows.Count
                 table_range.Copy()
                 table_range = new_slide.Shapes.PasteSpecial()
+                excel.CutCopyMode = 0 
                 workbook.Close(SaveChanges=False)
                 excel.Quit()
                 # pythoncom.CoUninitialize()
@@ -683,6 +715,8 @@ def generate_slide(paper_summary, template, option):
                 # print(type(table))
                 # print("--------------------------------------------------------------------------")
                 n = 0
+                table = None
+                
                 for i, shape in enumerate(new_slide.Shapes):
                     print(
                         f"i: {i} // shape: {shape} // HasTable: {shape.HasTable}")
@@ -694,17 +728,67 @@ def generate_slide(paper_summary, template, option):
                         print(
                             "--------------------------------------------------------------------------")
                         n = i+1
+
+                        for row in range(rows):
+                            for col in range(columns):
+                                if shape.Table.Cell(row+1, col+1).Shape.HasTextFrame:
+                                    #shape.Table.Cell(row+1, col+1).Shape.TextFrame.AutoSize = win32com.client.constants.ppAutoSizeShapeToFitText
+                                    shape.Table.Cell(row+1, col+1).Shape.TextFrame.HorizontalAnchor = 2 #msoAnchorCenter
+                                    shape.Table.Cell(row+1, col+1).Shape.TextFrame.VerticalAnchor = 3 # msoAnchorMiddle
+                                    shape.Table.Cell(row+1, col+1).Shape.TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
                         break
 
                 # table = new_slide.Shapes.Item(n)
                 # table.Table.ScaleProportionally(min(1000//table.Width, 700//table.Height))
                 # table.Table.title = sentences[1]
-                scale = min(1000//table_range.Width, 700//table_range.Height)
+                scale = min(700//table_range.Width, 550//table_range.Height)
                 table_range.ScaleWidth(scale, 0)
                 table_range.ScaleHeight(scale, 0)
+                table_range.ScaleWidth(table_range.Height*1.618/table_range.Width,0)
                 # table_range.Item().Table.title = sentences[1]
+                
+                longtextFlag = 0
+                width = 0
+                for row in range(rows):
+                    for col in range(columns):
+                        cell_width = table.Table.Cell(row+1, col+1).Shape.Width
+                        # if '\r' in cell_text or '\n' in cell_text:
+                        #     longtextFlag = True
+                        if width < cell_width:
+                            width = cell_width
+                            longtextFlag += 1
 
-                new_slide.Shapes.AddTextbox(1, 100, 100, 100, 100)
+                while longtextFlag > 1 and table_range.Width < new_slide.Master.Width/1.15:
+                    table_range.ScaleWidth(1.15,0)
+                    longtextFlag = 0
+                    width = 0
+                    for row in range(rows):
+                        for col in range(columns):
+                            cell_width = table.Table.Cell(row+1, col+1).Shape.Width
+                            # if '\r' in cell_text or '\n' in cell_text:
+                            #     longtextFlag = True
+                            if width < cell_width:
+                                width = cell_width
+                                longtextFlag += 1
+
+
+                table_range.Top = (new_slide.Master.Height + new_slide.Shapes.Item(1).Top + new_slide.Shapes.Item(1).Height)//2-(table_range.Height//2) - 30
+                table_range.Left = new_slide.Master.Width//2 - table_range.Width//2
+                
+                # table_range.TextFrame.WordWrap = False
+
+                # for element in table_range:
+                #     if element.HasTextFrame:
+                #         print("**************************************************************")
+                #         print(f"text: {element.TextFrame.TextRange.Text}")
+                #         print("**************************************************************")
+                #         element.TextFrame.WordWrap = False
+                #         element.TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
+                        # element.TextFrame.TextRange.ParagraphFormat.Alignment = 1
+                        # element.TextFrame.TextRange.ParagraphFormat.Alignment = 4
+
+                new_slide.Shapes.AddTextbox(1, 100, 100, table_range.Width*2, 100)  
+                new_slide.Shapes.Item(3).Top = table_range.Top + table_range.Height + 5
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Text = sentences[0]
                 new_slide.Shapes.Item(
@@ -715,12 +799,19 @@ def generate_slide(paper_summary, template, option):
                     3).TextFrame.TextRange.ParagraphFormat.SpaceWithin = option["spacing"]
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Font.Name = option["font"]
+                new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Size = 20
+                new_slide.Shapes.Item(3).TextFrame.AutoSize = win32com.client.constants.ppAutoSizeNone
                 new_slide.Shapes.Item(3).TextFrame.WordWrap = False
+                new_slide.Shapes.Item(3).Width = table_range.Width *2
+                new_slide.Shapes.Item(3).TextFrame.HorizontalAnchor = 2
+                new_slide.Shapes.Item(3).TextFrame.VerticalAnchor = 3
+                new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
+                new_slide.Shapes.Item(3).Left = new_slide.Master.Width//2 - new_slide.Shapes.Item(3).Width//2
 
                 # new_slide.Shapes.Item(3).Top = table_shape_range.Top - new_slide.Shapes.Item(3).Height
                 new_slide.Shapes.Item(3).Top = (
-                    table_range.Top + table_range.Height + new_slide.Shapes.Item(3).Height)
-                new_slide.Shapes.Item(3).Left = table_range.Left
+                    table_range.Top + table_range.Height + 20)
+                # new_slide.Shapes.Item(3).Left = table_range.Left
 
                 # table.Name = "a"
                 new_slide.Shapes.Item(3).Name = "b"
@@ -975,6 +1066,7 @@ def generate_slide(paper_summary, template, option):
                     2).TextFrame.TextRange.Text = option["title"]
                 new_slide.Shapes.Item(
                     2).TextFrame.TextRange.Font.Name = option["titlefont"]
+                #new_slide.Shapes.Item(2).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
 
                 # figure와 table 개수 세기
                 # n_figure = 0

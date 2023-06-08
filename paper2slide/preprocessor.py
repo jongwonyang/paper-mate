@@ -14,9 +14,37 @@ def get_cleaned_text(text):
     return text
 
 def remove_et_al_period(text):
-    # "et al."이 포함된 문장에서 온점을 찾아 제거합니다.
-    text = re.sub(r'(?<=et al)\.(?=\s|$)', '', text)
-    text = re.sub(r'\([^()]*\)', '', text)
+    # "et al."을 "id est alii"로 변경합니다.
+    text = re.sub(r'et al\.', 'et alii', text)
+    
+    # "e.g."를 "exempli gratia"로 변경합니다.
+    text = re.sub(r'e\.g\.', 'exempli gratia', text)
+    text = re.sub(r'\.\.\.', '~~~', text)
+    # "i.e."를 "id est"로 변경합니다.
+    text = re.sub(r'i\.e\.', 'id est', text)
+    
+    # "cf."를 "confer"로 변경합니다.
+    text = re.sub(r'cf\.', 'confer', text)
+    
+    # 숫자의 소수 형태(ex: 4.5)를 찾아 쉼표로 변경합니다.
+    text = re.sub(r'(\d+)\.(\d+)', r'\1,\2', text)
+    
+    return text
+
+def replace_et_al(text):
+    # "et alii"을 "et al."로 변경합니다.
+    text = re.sub(r'et Alii', 'et al.', text)
+    
+    # "exempli gratia"를 "e.g."로 변경합니다.
+    text = re.sub(r'exempli gratia', 'e.g.', text)
+    
+    # "id est"를 "i.e."로 변경합니다.
+    text = re.sub(r'id EST', 'i.e.', text)
+    
+    # "confer"를 "cf."로 변경합니다.
+    text = re.sub(r'confer', 'cf.', text)
+    text = re.sub(r'~~~', '...', text)
+    
     return text
 
 def remove_hyphen_spaces(text):
@@ -24,13 +52,6 @@ def remove_hyphen_spaces(text):
     pattern = re.compile(r'(\w+)-\s+(\w+)')
     # 패턴과 일치하는 문자열을 검색하여 공백 제거
     corrected_text = pattern.sub(r'\1\2', text)
-    # 결과 반환
-    return corrected_text
-
-def replace_et_al(text):
-    # 패턴과 일치하는 문자열을 검색하여 "et al."로 대체
-    corrected_text = text.replace("et al ", "et al.")
-
     # 결과 반환
     return corrected_text
 
