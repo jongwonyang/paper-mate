@@ -219,8 +219,12 @@ def pdf_to_text(pdf_file, save_path):
     output = []
     reference_flag = 0
     count = 0
+    title_flag = 0
+    main_title = ""
     for content in paragraphs:
         if "http" not in content["content"]:
+            if title_flag == 0 and content["role"] == "title":
+                main_title = content["content"]
             if reference_flag == 0:
                 if convert_references_section_title(content["content"]) == "REFERENCES":
                     output.append({"role": "sectionHeading",
@@ -275,7 +279,7 @@ def pdf_to_text(pdf_file, save_path):
     processed_data["tables"] = extract_table(tables)
 
     processed_data["sentences"] = data_reconstruction(processed_data)
-
+    processed_data["mainTitle"] = main_title
     for i in range(len(processed_data["sentences"])):
         if 'summarized' in processed_data["sentences"][i]:
             if processed_data["sentences"][i]["content"] is not None:
@@ -295,13 +299,13 @@ def pdf_to_text(pdf_file, save_path):
         else:
             processed_data["sentences"][i]["figures"] = []
 
-    all_text = ""
-    for content in processed_data["sentences"]:
-        if content["content"] is not None:
-            all_text = all_text + " " + content["content"]
-    keywords = extract_keywords_from_paragraph(all_text)
+    # all_text = ""
+    # for content in processed_data["sentences"]:
+    #     if content["content"] is not None:
+    #         all_text = all_text + " " + content["content"]
+    # keywords = extract_keywords_from_paragraph(all_text)
 
-    processed_data["keywords"] = keywords
+    # processed_data["keywords"] = keywords
 
     with open(save_path, 'w') as json_file:
         json.dump(processed_data, json_file)
