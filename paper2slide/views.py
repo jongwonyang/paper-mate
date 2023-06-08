@@ -233,7 +233,7 @@ def pdf_to_text(pdf_file, save_path):
                         output.append({"role": "sectionHeading",
                                     "content": "ABSTRACT"})
                     elif len(output) > 0 and content["role"] == None and output[-1]["role"] == None:
-                        if len(content["content"]) > 10:
+                        if len(content["content"]) > 20:
                             output[-1]["content"] = output[-1]["content"] + \
                                 " "+content["content"]
                     else:
