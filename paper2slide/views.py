@@ -220,7 +220,7 @@ def pdf_to_text(pdf_file, save_path):
     reference_flag = 0
     count = 0
     for content in paragraphs:
-        if "http" not in content:
+        if "http" not in content["content"]:
             if reference_flag == 0:
                 if convert_references_section_title(content["content"]) == "REFERENCES":
                     output.append({"role": "sectionHeading",
