@@ -64,10 +64,12 @@ def handle_template(request, summary_json_file):
                 potx_file = fs.save(file.name, file)
                 template = settings.MEDIA_ROOT / potx_file
             usertemplate = True
-
+        with open(settings.MEDIA_ROOT / summary_json_file, 'r') as file:
+            summary_dict = json.load(file)
         name, _ = os.path.splitext(summary_json_file)
         option = {
-            'title': name,
+            # 'title': name,
+            'title' : summary_dict["mainTitle"],
             'username': 'username',
             'titlefont': 'Arial',
             'subtitlefont': 'Arial',
@@ -219,16 +221,22 @@ def pdf_to_text(pdf_file, save_path):
     output = []
     reference_flag = 0
     count = 0
+    title_flag = 0
+    main_title = ""
     for content in paragraphs:
         if "http" not in content["content"]:
+            if title_flag == 0 and content["role"] == "title":
+                main_title = content["content"]
+                title_flag = 1
             if reference_flag == 0:
                 if convert_references_section_title(content["content"]) == "REFERENCES":
                     output.append({"role": "sectionHeading",
                                 "content": "REFERENCES"})
                     reference_flag = 1
                 elif content["role"] == "sectionHeading" or content["role"] == None:
-                    if content["content"].upper().strip() == "ACKNOWLEDGEMENTS":
-                        break
+                    if content["content"].upper().strip() == "ACKNOWLEDGEMENTS" or content["content"].upper().strip() == "ACKNOWLEDGMENTS":
+                        output.append({"role": "sectionHeading",
+                                    "content": "ACKNOWLEDGEMENTS"})
                     elif content["content"].upper().strip() == "ABSTRACT":
                         output.append({"role": "sectionHeading",
                                     "content": "ABSTRACT"})
@@ -265,7 +273,8 @@ def pdf_to_text(pdf_file, save_path):
                         " "+content["content"]
 
     for i in range(len(output)):
-        output[i]["content"] = get_cleaned_text(output[i]["content"])
+        if output[i]["role"] == None:
+            output[i]["content"] = get_cleaned_text(output[i]["content"])
         # et al. 때문에 .으로 문장을 구분하는 방식에 어려움 존재 -> 먼저 제거 후 다시 삽입
 
     output = summarize_text(output)
@@ -275,7 +284,7 @@ def pdf_to_text(pdf_file, save_path):
     processed_data["tables"] = extract_table(tables)
 
     processed_data["sentences"] = data_reconstruction(processed_data)
-
+    processed_data["mainTitle"] = main_title
     for i in range(len(processed_data["sentences"])):
         if 'summarized' in processed_data["sentences"][i]:
             if processed_data["sentences"][i]["content"] is not None:
@@ -295,13 +304,13 @@ def pdf_to_text(pdf_file, save_path):
         else:
             processed_data["sentences"][i]["figures"] = []
 
-    all_text = ""
-    for content in processed_data["sentences"]:
-        if content["content"] is not None:
-            all_text = all_text + " " + content["content"]
-    keywords = extract_keywords_from_paragraph(all_text)
+    # all_text = ""
+    # for content in processed_data["sentences"]:
+    #     if content["content"] is not None:
+    #         all_text = all_text + " " + content["content"]
+    # keywords = extract_keywords_from_paragraph(all_text)
 
-    processed_data["keywords"] = keywords
+    # processed_data["keywords"] = keywords
 
     with open(save_path, 'w') as json_file:
         json.dump(processed_data, json_file)
@@ -793,7 +802,7 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Size = 20
                 new_slide.Shapes.Item(3).TextFrame.AutoSize = win32com.client.constants.ppAutoSizeNone
                 new_slide.Shapes.Item(3).TextFrame.WordWrap = False
-                new_slide.Shapes.Item(3).Width = table_range.Width *2
+                new_slide.Shapes.Item(3).Width = new_slide.Master.Width *2
                 new_slide.Shapes.Item(3).TextFrame.HorizontalAnchor = 2
                 new_slide.Shapes.Item(3).TextFrame.VerticalAnchor = 3
                 new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
@@ -1011,7 +1020,8 @@ def generate_slide(paper_summary, template, option):
         subtitles = []
 
         for sub in paper_summary:
-            subtitles.append(sub["title"])
+            if "REFERENCES" not in sub["title"]:
+                subtitles.append(sub["title"])
 
         just_insert_text(presentation, "Contents", subtitles, option)
 
@@ -1041,7 +1051,7 @@ def generate_slide(paper_summary, template, option):
         # 본격적인 내용
         for i, summary in enumerate(paper_summary):
 
-            if summary["summarized"] is not None:
+            if summary["summarized"] is not None and "REFERENCES" not in summary["title"]:
                 # 서브섹션 타이틀 페이지 만들기
                 layout = layout = presentation.Designs.Item(
                     1).SlideMaster.CustomLayouts.Item(slide_layout["Section Header"])
