@@ -790,8 +790,6 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.AddTextbox(1, 100, 100, table_range.Width*2, 100)  
                 new_slide.Shapes.Item(3).Top = table_range.Top + table_range.Height + 5
                 new_slide.Shapes.Item(
-                    3).TextFrame.TextRange.Text = sentences[0]
-                new_slide.Shapes.Item(
                     3).TextFrame.TextRange.ParagraphFormat.Bullet.Visible = False
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.ParagraphFormat.LineRuleWithin = False
@@ -800,9 +798,11 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(
                     3).TextFrame.TextRange.Font.Name = option["font"]
                 new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Size = 20
+                new_slide.Shapes.Item(3).Width = new_slide.Master.Width - 50
                 new_slide.Shapes.Item(3).TextFrame.AutoSize = win32com.client.constants.ppAutoSizeNone
-                new_slide.Shapes.Item(3).TextFrame.WordWrap = False
-                new_slide.Shapes.Item(3).Width = new_slide.Master.Width *2
+                new_slide.Shapes.Item(3).TextFrame.WordWrap = True
+                new_slide.Shapes.Item(
+                    3).TextFrame.TextRange.Text = sentences[0]
                 new_slide.Shapes.Item(3).TextFrame.HorizontalAnchor = 2
                 new_slide.Shapes.Item(3).TextFrame.VerticalAnchor = 3
                 new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
@@ -810,7 +810,7 @@ def generate_slide(paper_summary, template, option):
 
                 # new_slide.Shapes.Item(3).Top = table_shape_range.Top - new_slide.Shapes.Item(3).Height
                 new_slide.Shapes.Item(3).Top = (
-                    table_range.Top + table_range.Height + 20)
+                    table_range.Top + table_range.Height + 35)
                 # new_slide.Shapes.Item(3).Left = table_range.Left
 
                 # table.Name = "a"
