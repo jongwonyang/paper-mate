@@ -181,3 +181,6 @@ uploads/
 test.py
 
 tmp.txt
+
+# Credentials
+paper2slide/credentials.json

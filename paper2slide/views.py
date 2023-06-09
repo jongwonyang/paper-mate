@@ -64,10 +64,12 @@ def handle_template(request, summary_json_file):
                 potx_file = fs.save(file.name, file)
                 template = settings.MEDIA_ROOT / potx_file
             usertemplate = True
-
+        with open(settings.MEDIA_ROOT / summary_json_file, 'r') as file:
+            summary_dict = json.load(file)
         name, _ = os.path.splitext(summary_json_file)
         option = {
-            'title': name,
+            # 'title': name,
+            'title' : summary_dict["mainTitle"],
             'username': 'username',
             'titlefont': 'Arial',
             'subtitlefont': 'Arial',
@@ -271,7 +273,8 @@ def pdf_to_text(pdf_file, save_path):
                         " "+content["content"]
 
     for i in range(len(output)):
-        output[i]["content"] = get_cleaned_text(output[i]["content"])
+        if output[i]["role"] == None:
+            output[i]["content"] = get_cleaned_text(output[i]["content"])
         # et al. 때문에 .으로 문장을 구분하는 방식에 어려움 존재 -> 먼저 제거 후 다시 삽입
 
     output = summarize_text(output)
