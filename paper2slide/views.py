@@ -802,7 +802,7 @@ def generate_slide(paper_summary, template, option):
                 new_slide.Shapes.Item(3).TextFrame.TextRange.Font.Size = 20
                 new_slide.Shapes.Item(3).TextFrame.AutoSize = win32com.client.constants.ppAutoSizeNone
                 new_slide.Shapes.Item(3).TextFrame.WordWrap = False
-                new_slide.Shapes.Item(3).Width = table_range.Width *2
+                new_slide.Shapes.Item(3).Width = new_slide.Master.Width *2
                 new_slide.Shapes.Item(3).TextFrame.HorizontalAnchor = 2
                 new_slide.Shapes.Item(3).TextFrame.VerticalAnchor = 3
                 new_slide.Shapes.Item(3).TextFrame.TextRange.ParagraphFormat.Alignment = win32com.client.constants.ppAlignCenter
@@ -1020,7 +1020,8 @@ def generate_slide(paper_summary, template, option):
         subtitles = []
 
         for sub in paper_summary:
-            subtitles.append(sub["title"])
+            if "REFERENCES" not in sub["title"]:
+                subtitles.append(sub["title"])
 
         just_insert_text(presentation, "Contents", subtitles, option)
 
@@ -1050,7 +1051,7 @@ def generate_slide(paper_summary, template, option):
         # 본격적인 내용
         for i, summary in enumerate(paper_summary):
 
-            if summary["summarized"] is not None:
+            if summary["summarized"] is not None and "REFERENCES" not in summary["title"]:
                 # 서브섹션 타이틀 페이지 만들기
                 layout = layout = presentation.Designs.Item(
                     1).SlideMaster.CustomLayouts.Item(slide_layout["Section Header"])
